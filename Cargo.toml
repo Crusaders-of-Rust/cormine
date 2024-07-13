@@ -1,0 +1,26 @@
+[package]
+name = "cormine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.14"
+bevy_flycam = { version = "0.14.0", optional = true }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+ndarray = "0.15"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+
+[features]
+default = ["wireframe", "dev_tools", "flycam"]
+wireframe = []
+dev_tools = ["bevy/bevy_dev_tools"]
+flycam = ["bevy_flycam"]
