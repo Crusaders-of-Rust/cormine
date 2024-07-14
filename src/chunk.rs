@@ -30,6 +30,10 @@ impl Chunk {
         self
     }
 
+    pub fn array(&self) -> &Array3<Voxel> {
+        &self.voxels
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize, usize), &Voxel)> {
         self.voxels.indexed_iter()
     }

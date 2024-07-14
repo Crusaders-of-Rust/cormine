@@ -4,6 +4,10 @@ pub struct Voxel {
 }
 
 impl Voxel {
+    pub const AIR: Self = Self {
+        kind: VoxelKind::Air,
+    };
+
     pub const GRASS: Self = Self {
         kind: VoxelKind::Grass,
     };
