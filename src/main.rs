@@ -5,23 +5,25 @@ mod voxel;
 #[cfg(feature = "debug")]
 mod debug;
 
-use bevy::color::palettes::css::WHITE;
-use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use chunk::Chunk;
+use chunk::{Chunk, CHUNK_SIZE};
 use mesh::HasMesh;
 use voxel::Voxel;
 
+use bevy::color::palettes::css::WHITE;
+use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::prelude::*;
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::window::PresentMode;
+
 #[cfg(feature = "wireframe")]
 use bevy::render::{
     settings::{RenderCreation, WgpuFeatures, WgpuSettings},
     RenderPlugin,
 };
-use bevy::window::PresentMode;
+
 #[cfg(feature = "flycam")]
 use bevy_flycam::prelude::*;
 
-use crate::chunk::CHUNK_SIZE;
 use ndarray::s as slice;
 
 fn main() {
@@ -51,6 +53,7 @@ fn main() {
     });
 
     app.add_plugins(default_plugins);
+    app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
 
     #[cfg(feature = "wireframe")]
     {
@@ -105,10 +108,26 @@ fn generate_chunks(mut commands: Commands) {
                 z: z * CHUNK_SIZE as i32,
             });
             chunk
-                .slice_mut(slice![0..chunk::CHUNK_SIZE, 0..x + z, 0..chunk::CHUNK_SIZE])
+                .slice_mut(slice![0..CHUNK_SIZE, 0..x + z, 0..CHUNK_SIZE])
                 .fill(Voxel::GRASS);
             commands.spawn((Name::new("Chunk"), chunk));
         }
+    }
+}
+
+#[derive(AsBindGroup, Reflect, Asset, Debug, Clone)]
+pub struct VoxelMaterial {
+    #[uniform(0)]
+    base_color: LinearRgba,
+    #[uniform(1)]
+    light_color: LinearRgba,
+    #[uniform(2)]
+    light_dir: Vec3,
+}
+
+impl Material for VoxelMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/voxel.wgsl".into()
     }
 }
 
@@ -116,21 +135,21 @@ fn generate_chunk_meshes(
     mut commands: Commands,
     query: Query<(Entity, &Chunk), Without<HasMesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<VoxelMaterial>>,
 ) {
-    let green_material = materials.add(StandardMaterial {
-        base_color: Color::Srgba(Srgba::GREEN),
-        perceptual_roughness: 0.9,
-        ..default()
+    let voxel_material = materials.add(VoxelMaterial {
+        base_color: Srgba::GREEN.into(),
+        light_color: Srgba::WHITE.into(),
+        light_dir: Vec3::new(1.0, 1.0, 1.0),
     });
     for (ent, chunk) in query.iter() {
         let mesh = mesh::from_chunk(chunk);
         commands
             .entity(ent)
-            .insert(PbrBundle {
+            .insert(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
                 transform: Transform::from_translation(chunk.position().as_vec3()),
-                material: green_material.clone(),
+                material: voxel_material.clone(),
                 ..default()
             })
             .insert(HasMesh);
