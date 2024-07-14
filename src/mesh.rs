@@ -11,6 +11,7 @@ use bevy::render::render_resource::VertexFormat;
 use ndarray::Array3;
 
 #[derive(Component)]
+/// Marker component indicating a mesh is present and up to date
 pub struct HasMesh;
 
 pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =

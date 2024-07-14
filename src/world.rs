@@ -20,6 +20,16 @@ impl World {
         );
     }
 
+    pub fn chunk_containing(&self, pos: IVec3) -> Option<Entity> {
+        let chunk_base = pos
+            - pos.rem_euclid(IVec3::new(
+                CHUNK_SIZE as _,
+                CHUNK_SIZE as _,
+                CHUNK_SIZE as _,
+            ));
+        self.chunk_map.get(&chunk_base).copied()
+    }
+
     pub fn voxel_at<'a>(&self, pos: IVec3, chunks: &'a Query<&Chunk>) -> Option<&'a Voxel> {
         let chunk_base = pos
             - pos.rem_euclid(IVec3::new(

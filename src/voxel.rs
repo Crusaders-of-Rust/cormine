@@ -23,6 +23,10 @@ impl Voxel {
     pub fn kind(&self) -> VoxelKind {
         self.kind
     }
+
+    pub fn clear(&mut self) {
+        self.kind = VoxelKind::Air;
+    }
 }
 
 #[derive(Default, Copy, Clone, Debug)]

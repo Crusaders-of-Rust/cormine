@@ -5,14 +5,14 @@ use crate::material::{VoxelMaterial, VoxelMaterialResource};
 use crate::world;
 
 #[derive(Resource, Default)]
-pub struct SelectedVoxel(Option<IVec3>);
+pub struct SelectedVoxel(pub Option<IVec3>);
 
 const SELECT_DISTANCE: usize = 32;
 
 pub fn update_selected_voxel(
     world: Res<world::World>,
     mut selected: ResMut<SelectedVoxel>,
-    player: Query<&Transform, (With<Camera>, Changed<Transform>)>,
+    player: Query<&Transform, With<Camera>>,
     chunks: Query<&Chunk>,
     material_handle: Res<VoxelMaterialResource>,
     mut materials: ResMut<Assets<VoxelMaterial>>,

@@ -14,6 +14,7 @@ mod material;
 
 /// Handles finding the currently 'selected' voxel and highlighting it
 mod highlight;
+mod input;
 mod ui;
 
 use chunk::{Chunk, CHUNK_SIZE};
@@ -82,7 +83,7 @@ fn main() {
             ui::draw_ui,
         ),
     )
-    .add_systems(Update, generate_chunk_meshes)
+    .add_systems(Update, (input::check_input, generate_chunk_meshes))
     .add_systems(Update, highlight::update_selected_voxel);
 
     #[cfg(feature = "flycam")]
