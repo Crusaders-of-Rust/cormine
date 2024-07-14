@@ -76,7 +76,7 @@ fn fragment(
     let ambient_color = light_color * AMBIENT_STRENGTH;
     let material_color = VOXEL_COLORS[extractBits(mesh.vertex_data, 3u, 1u)];
     var out = material_color * (ambient_color + diff_color);
-    if is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
+    if bool(has_selected) && is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
         out *= 0.7;
     }
     return out;
