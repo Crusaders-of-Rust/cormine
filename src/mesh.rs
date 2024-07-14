@@ -4,13 +4,17 @@ use std::ops::Add;
 
 use crate::voxel::Voxel;
 use bevy::prelude::*;
-use bevy::render::mesh::PrimitiveTopology;
 use bevy::render::mesh::VertexAttributeValues::Float32x3;
+use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
 use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::VertexFormat;
 use ndarray::Array3;
 
 #[derive(Component)]
 pub struct HasMesh;
+
+pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
+    MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
 pub fn from_chunk(chunk: &Chunk) -> Mesh {
     trace!("Generating chunk mesh @ {}", chunk.position());
@@ -29,15 +33,6 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
         vec3(1., 0., 1.),
         vec3(1., 1., 1.),
         vec3(0., 1., 1.),
-    ];
-
-    const NORMALS: [Vec3; 6] = [
-        vec3(0., 0., -1.),
-        vec3(0., 0., 1.),
-        vec3(-1., 0., 0.),
-        vec3(1., 0., 0.),
-        vec3(0., -1., 0.),
-        vec3(0., 1., 0.),
     ];
 
     /// The indices into [`VERTICES`] making up each face of the cube
@@ -69,12 +64,12 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
     }
 
     let mut vertices = Vec::new();
-    let mut normals = Vec::new();
+    let mut vertex_data = Vec::new();
 
     fn add_face(
         chunk: &Chunk,
         vertices: &mut Vec<[f32; 3]>,
-        normals: &mut Vec<[f32; 3]>,
+        vertex_data: &mut Vec<u32>,
         pos: Vec3,
     ) {
         let adjacent = get_adjacent_voxels(chunk.array(), pos);
@@ -87,7 +82,8 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
-                normals.push(NORMALS[i].to_array());
+                // TODO: vertex_data should hold more than just the normal index
+                vertex_data.push(i as u32);
                 vertices.push(verts[idx]);
             }
         }
@@ -95,11 +91,14 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
 
     for ((x, y, z), _) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_face(&chunk, &mut vertices, &mut normals, pos);
+        add_face(&chunk, &mut vertices, &mut vertex_data, pos);
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, Float32x3(normals));
+    mesh.insert_attribute(
+        VOXEL_VERTEX_DATA,
+        VertexAttributeValues::Uint32(vertex_data),
+    );
 
     mesh
 }
