@@ -57,7 +57,7 @@ fn main() {
         app.add_plugins(WireframePlugin);
     }
 
-    app.add_systems(Startup, (make_camera, generate_chunks))
+    app.add_systems(Startup, (make_camera, make_light, generate_chunks))
         .add_systems(Update, generate_chunk_meshes);
 
     #[cfg(feature = "flycam")]
@@ -84,6 +84,18 @@ fn make_camera(mut commands: Commands) {
     ent.insert(FlyCam);
 }
 
+fn make_light(mut commands: Commands) {
+    commands.spawn(DirectionalLightBundle {
+        transform: Transform::IDENTITY.looking_to(Vec3::new(-1.0, -0.6, -1.0), Vec3::Y),
+        directional_light: DirectionalLight {
+            color: Color::WHITE,
+            shadows_enabled: true,
+            ..default()
+        },
+        ..default()
+    });
+}
+
 fn generate_chunks(mut commands: Commands) {
     for x in 0..8 {
         for z in 0..8 {
@@ -108,13 +120,14 @@ fn generate_chunk_meshes(
 ) {
     let green_material = materials.add(StandardMaterial {
         base_color: Color::Srgba(Srgba::GREEN),
+        perceptual_roughness: 0.9,
         ..default()
     });
     for (ent, chunk) in query.iter() {
         let mesh = mesh::from_chunk(chunk);
         commands
             .entity(ent)
-            .insert(MaterialMeshBundle {
+            .insert(PbrBundle {
                 mesh: meshes.add(mesh),
                 transform: Transform::from_translation(chunk.position().as_vec3()),
                 material: green_material.clone(),

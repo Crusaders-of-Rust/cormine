@@ -31,6 +31,15 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
         vec3(0., 1., 1.),
     ];
 
+    const NORMALS: [Vec3; 6] = [
+        vec3(0., 0., -1.),
+        vec3(0., 0., 1.),
+        vec3(-1., 0., 0.),
+        vec3(1., 0., 0.),
+        vec3(0., -1., 0.),
+        vec3(0., 1., 0.),
+    ];
+
     /// The indices into [`VERTICES`] making up each face of the cube
     const FACES: [[usize; 4]; 6] = [
         [0, 1, 2, 3], // front
@@ -60,10 +69,16 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
     }
 
     let mut vertices = Vec::new();
+    let mut normals = Vec::new();
 
-    fn add_face(chunk: &Chunk, vertices: &mut Vec<[f32; 3]>, pos: Vec3) {
+    fn add_face(
+        chunk: &Chunk,
+        vertices: &mut Vec<[f32; 3]>,
+        normals: &mut Vec<[f32; 3]>,
+        pos: Vec3,
+    ) {
         let adjacent = get_adjacent_voxels(chunk.array(), pos);
-        for (face, adj) in FACES.into_iter().zip(adjacent.iter()) {
+        for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
             // Don't render faces touching a solid voxel
             if adj.should_mesh() {
                 continue;
@@ -72,6 +87,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
+                normals.push(NORMALS[i].to_array());
                 vertices.push(verts[idx]);
             }
         }
@@ -79,10 +95,11 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
 
     for ((x, y, z), _) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_face(&chunk, &mut vertices, pos);
+        add_face(&chunk, &mut vertices, &mut normals, pos);
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, Float32x3(normals));
 
     mesh
 }
