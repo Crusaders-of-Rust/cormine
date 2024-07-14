@@ -14,6 +14,7 @@ mod material;
 
 /// Handles finding the currently 'selected' voxel and highlighting it
 mod highlight;
+mod ui;
 
 use chunk::{Chunk, CHUNK_SIZE};
 use mesh::HasMesh;
@@ -74,7 +75,12 @@ fn main() {
 
     app.add_systems(
         Startup,
-        (make_camera, material::make_voxel_material, generate_chunks),
+        (
+            make_camera,
+            material::make_voxel_material,
+            generate_chunks,
+            ui::draw_ui,
+        ),
     )
     .add_systems(Update, generate_chunk_meshes)
     .add_systems(Update, highlight::update_selected_voxel);
