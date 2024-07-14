@@ -17,6 +17,7 @@ use bevy::render::{
     settings::{RenderCreation, WgpuFeatures, WgpuSettings},
     RenderPlugin,
 };
+use bevy::window::PresentMode;
 #[cfg(feature = "flycam")]
 use bevy_flycam::prelude::*;
 
@@ -40,6 +41,14 @@ fn main() {
             default_color: WHITE.into(),
         });
     }
+
+    default_plugins = default_plugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            present_mode: PresentMode::AutoNoVsync,
+            ..default()
+        }),
+        ..default()
+    });
 
     app.add_plugins(default_plugins);
 
