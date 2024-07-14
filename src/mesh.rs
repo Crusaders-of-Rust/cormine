@@ -1,4 +1,4 @@
-use crate::chunk::{Chunk, CHUNK_SIZE};
+use crate::chunk::Chunk;
 use bevy::math::vec3;
 
 use bevy::prelude::*;

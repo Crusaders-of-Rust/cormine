@@ -2,6 +2,9 @@ mod chunk;
 mod mesh;
 mod voxel;
 
+#[cfg(feature = "debug")]
+mod debug;
+
 use bevy::color::palettes::css::WHITE;
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use chunk::Chunk;
@@ -45,25 +48,21 @@ fn main() {
         app.add_plugins(WireframePlugin);
     }
 
-    app.add_systems(Startup, generate_chunks)
+    app.add_systems(Startup, (make_camera, generate_chunks))
         .add_systems(Update, generate_chunk_meshes);
 
     #[cfg(feature = "flycam")]
-    app.add_plugins(PlayerPlugin);
+    app.add_plugins(NoCameraPlayerPlugin);
 
-    #[cfg(not(feature = "flycam"))]
-    app.add_systems(Startup, make_camera);
-
-    #[cfg(feature = "dev_tools")]
-    app.add_plugins(bevy::dev_tools::fps_overlay::FpsOverlayPlugin::default());
+    #[cfg(feature = "debug")]
+    app.add_plugins(debug::DebugUiPlugins);
 
     app.run();
 }
 
-#[cfg(not(feature = "flycam"))]
 fn make_camera(mut commands: Commands) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(
+    let mut ent = commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(-10.0, 4.5, -10.0).looking_at(
             Vec3 {
                 y: 4.5,
                 ..default()
@@ -72,6 +71,8 @@ fn make_camera(mut commands: Commands) {
         ),
         ..default()
     });
+    #[cfg(feature = "flycam")]
+    ent.insert(FlyCam);
 }
 
 fn generate_chunks(mut commands: Commands) {
@@ -92,7 +93,7 @@ fn generate_chunks(mut commands: Commands) {
 
 fn generate_chunk_meshes(
     mut commands: Commands,
-    mut query: Query<(Entity, &Chunk), (Without<HasMesh>)>,
+    query: Query<(Entity, &Chunk), Without<HasMesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
