@@ -2,7 +2,7 @@ use crate::chunk::Chunk;
 use bevy::math::vec3;
 use std::ops::Add;
 
-use crate::voxel::Voxel;
+use crate::voxel::{Voxel, VoxelKind};
 use bevy::prelude::*;
 use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
@@ -70,10 +70,14 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
         chunk: &Chunk,
         vertices: &mut Vec<[f32; 3]>,
         vertex_data: &mut Vec<u32>,
+        material: VoxelKind,
         pos: Vec3,
     ) {
         let adjacent = get_adjacent_voxels(chunk.array(), pos);
         for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
+            let mut per_vertex_data = VertexData::new();
+            per_vertex_data.set_normal_idx(i);
+            per_vertex_data.set_material(material);
             // Don't render faces touching a solid voxel
             if adj.should_mesh() {
                 continue;
@@ -83,15 +87,15 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
                 // TODO: vertex_data should hold more than just the normal index
-                vertex_data.push(i as u32);
+                vertex_data.push(per_vertex_data.to_u32());
                 vertices.push(verts[idx]);
             }
         }
     }
 
-    for ((x, y, z), _) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
+    for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_face(&chunk, &mut vertices, &mut vertex_data, pos);
+        add_face(&chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));
@@ -101,4 +105,27 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
     );
 
     mesh
+}
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+struct VertexData(u32);
+
+impl VertexData {
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    pub fn set_normal_idx(&mut self, idx: usize) {
+        assert!(idx <= 5);
+        self.0 |= idx as u32;
+    }
+
+    pub fn set_material(&mut self, kind: VoxelKind) {
+        self.0 |= (kind as u32) << 3;
+    }
+
+    pub fn to_u32(self) -> u32 {
+        self.0
+    }
 }

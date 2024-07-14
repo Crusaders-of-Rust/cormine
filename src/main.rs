@@ -119,6 +119,9 @@ fn generate_chunks(mut commands: Commands, mut world: ResMut<world::World>) {
             let mut chunk = Chunk::new().with_position(pos);
             chunk
                 .slice_mut(slice![0..CHUNK_SIZE, 0..x + z, 0..CHUNK_SIZE])
+                .fill(Voxel::STONE);
+            chunk
+                .slice_mut(slice![0..CHUNK_SIZE, 5..x + z, 0..CHUNK_SIZE])
                 .fill(Voxel::GRASS);
             world.add_chunk(pos, commands.spawn((Name::new("Chunk"), chunk)).id());
         }

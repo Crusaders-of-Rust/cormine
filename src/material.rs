@@ -11,7 +11,6 @@ use bevy::render::render_resource::{
 
 pub fn make_voxel_material(mut commands: Commands, mut materials: ResMut<Assets<VoxelMaterial>>) {
     let handle = materials.add(VoxelMaterial {
-        base_color: Srgba::GREEN.into(),
         light_color: Srgba::WHITE.into(),
         light_dir: Vec3::new(1.0, 1.0, 1.0),
         selected_voxel: Vec3::ZERO,
@@ -27,8 +26,6 @@ pub struct VoxelMaterialResource {
 
 #[derive(AsBindGroup, Reflect, Asset, Debug, Clone)]
 pub struct VoxelMaterial {
-    #[uniform(0)]
-    base_color: LinearRgba,
     #[uniform(1)]
     light_color: LinearRgba,
     #[uniform(2)]
