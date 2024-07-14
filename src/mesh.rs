@@ -4,8 +4,8 @@ use std::ops::Add;
 
 use crate::voxel::Voxel;
 use bevy::prelude::*;
-use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::mesh::PrimitiveTopology;
+use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::render_asset::RenderAssetUsages;
 use ndarray::Array3;
 

@@ -2,6 +2,7 @@ use bevy::diagnostic::{
     DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
 };
 use bevy::input::{keyboard::KeyboardInput, ButtonState};
+use bevy::pbr::wireframe::WireframeConfig;
 use bevy::prelude::*;
 
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSet};
@@ -52,6 +53,7 @@ fn should_display_player_info(state: Res<DebugUiState>) -> bool {
 fn toggle_debug_ui_displays(
     mut inputs: EventReader<KeyboardInput>,
     mut ui_state: ResMut<DebugUiState>,
+    #[cfg(feature = "wireframe")] mut wireframe_cfg: ResMut<WireframeConfig>,
 ) {
     for input in inputs.read() {
         match (input.key_code, input.state) {
@@ -60,6 +62,10 @@ fn toggle_debug_ui_displays(
             }
             (KeyCode::F4, ButtonState::Pressed) => {
                 ui_state.player_info = !ui_state.player_info;
+            }
+            #[cfg(feature = "wireframe")]
+            (KeyCode::F5, ButtonState::Pressed) => {
+                wireframe_cfg.global = !wireframe_cfg.global;
             }
             _ => {}
         }

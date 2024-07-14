@@ -37,7 +37,7 @@ fn main() {
             ..default()
         });
         app.insert_resource(WireframeConfig {
-            global: true,
+            global: false,
             default_color: WHITE.into(),
         });
     }
