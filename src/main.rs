@@ -10,9 +10,10 @@ use mesh::HasMesh;
 use voxel::Voxel;
 
 use bevy::color::palettes::css::WHITE;
+use bevy::pbr::{MaterialPipeline, MaterialPipelineKey};
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::prelude::*;
-use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError};
 use bevy::window::PresentMode;
 
 #[cfg(feature = "wireframe")]
@@ -20,7 +21,7 @@ use bevy::render::{
     settings::{RenderCreation, WgpuFeatures, WgpuSettings},
     RenderPlugin,
 };
-
+use bevy::render::mesh::MeshVertexBufferLayoutRef;
 #[cfg(feature = "flycam")]
 use bevy_flycam::prelude::*;
 
@@ -126,8 +127,19 @@ pub struct VoxelMaterial {
 }
 
 impl Material for VoxelMaterial {
+    fn vertex_shader() -> ShaderRef {
+        "shaders/voxel.wgsl".into()
+    }
     fn fragment_shader() -> ShaderRef {
         "shaders/voxel.wgsl".into()
+    }
+    fn specialize(_: &MaterialPipeline<Self>, descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayoutRef, _: MaterialPipelineKey<Self>) -> Result<(), SpecializedMeshPipelineError> {
+        let vtx_layout = layout.0.get_layout(&[
+            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
+            Mesh::ATTRIBUTE_NORMAL.at_shader_location(1)
+        ])?;
+        descriptor.vertex.buffers = vec![vtx_layout];
+        Ok(())
     }
 }
 
