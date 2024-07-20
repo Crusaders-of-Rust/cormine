@@ -17,9 +17,7 @@ pub fn update_selected_voxel(
     material_handle: Res<VoxelMaterialResource>,
     mut materials: ResMut<Assets<VoxelMaterial>>,
 ) {
-    let Ok(player_trans) = player.get_single() else {
-        return;
-    };
+    let player_trans = player.get_single().expect("expected player object");
     let pos = player_trans.translation;
     let direction = player_trans.forward().as_vec3().normalize();
     for step in 0..SELECT_DISTANCE {
