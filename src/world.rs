@@ -21,8 +21,10 @@ impl World {
     }
 
     pub fn chunk_containing(&self, pos: IVec3) -> Option<Entity> {
-        let chunk_base = pos
-            - pos.rem_euclid(IVec3::new(
+        let mut chunk_pos = pos.clone();
+        chunk_pos.y = 0;
+        let chunk_base = chunk_pos
+            - chunk_pos.rem_euclid(IVec3::new(
                 CHUNK_SIZE as _,
                 CHUNK_SIZE as _,
                 CHUNK_SIZE as _,
