@@ -18,7 +18,7 @@ pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
 pub fn from_chunk(chunk: &Chunk) -> Mesh {
-    trace!("Generating chunk mesh @ {}", chunk.position());
+    trace!("Generating chunk mesh @ {:?}", chunk.position());
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),

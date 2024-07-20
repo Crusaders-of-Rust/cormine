@@ -5,8 +5,11 @@ use noise::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::chunk::{Chunk, CHUNK_SIZE, MAX_HEIGHT};
 use crate::voxel::VoxelKind;
+use crate::{
+    chunk::{Chunk, ChunkPosition, CHUNK_SIZE, MAX_HEIGHT},
+    voxel::LocalVoxelPosition,
+};
 
 fn generate_noise_map(width: usize, height: usize) -> NoiseMap {
     let mut rng = thread_rng();
@@ -46,10 +49,8 @@ pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::W
     let chunk_count: i32 = 16;
     for chunk_x in 0..chunk_count {
         for chunk_z in 0..chunk_count {
-            let chunk_pos = IVec2 {
-                x: chunk_x * CHUNK_SIZE as i32,
-                y: chunk_z * CHUNK_SIZE as i32,
-            };
+            let chunk_pos =
+                ChunkPosition::new(chunk_x * CHUNK_SIZE as i32, chunk_z * CHUNK_SIZE as i32);
             let mut chunk = Chunk::new().with_position(chunk_pos);
 
             for x in 0..CHUNK_SIZE {
@@ -65,31 +66,32 @@ pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::W
                             as usize)
                             .max(rand::thread_rng().gen_range(31..33));
                         for y in 0..water_floor {
-                            chunk.voxel_mut([x, y, z]).kind = VoxelKind::Stone;
+                            chunk
+                                .voxel_mut(LocalVoxelPosition::new(x as _, y as _, z as _))
+                                .kind = VoxelKind::Stone;
                         }
                         for y in water_floor..=height {
-                            chunk.voxel_mut([x, y, z]).kind = VoxelKind::Water;
+                            chunk
+                                .voxel_mut(LocalVoxelPosition::new(x as _, y as _, z as _))
+                                .kind = VoxelKind::Water;
                         }
                     } else {
                         if height > MAX_HEIGHT - 1 {
                             height = MAX_HEIGHT - 1;
                         }
-                        chunk.voxel_mut([x, height, z]).kind = ground_height_to_voxel(height, true);
+                        chunk
+                            .voxel_mut(LocalVoxelPosition::new(x as _, height as _, z as _))
+                            .kind = ground_height_to_voxel(height, true);
                         for y in 0..height {
-                            chunk.voxel_mut([x, y, z]).kind = ground_height_to_voxel(y, false);
+                            chunk
+                                .voxel_mut(LocalVoxelPosition::new(x as _, y as _, z as _))
+                                .kind = ground_height_to_voxel(y, false);
                         }
                     }
                 }
             }
 
-            world.add_chunk(
-                IVec3 {
-                    x: chunk_pos.x,
-                    y: 0,
-                    z: chunk_pos.y,
-                },
-                commands.spawn((Name::new("Chunk"), chunk)).id(),
-            );
+            world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
         }
     }
 }
