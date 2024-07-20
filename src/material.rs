@@ -56,4 +56,9 @@ impl Material for VoxelMaterial {
         descriptor.vertex.buffers = vec![vtx_layout];
         Ok(())
     }
+    fn alpha_mode(&self) -> AlphaMode {
+        // messes up chunk rendering :sob:
+        // AlphaMode::Blend
+        AlphaMode::Opaque
+    }
 }

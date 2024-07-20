@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use ndarray::{Array3, ArrayView3, ArrayViewMut3, SliceInfo, SliceInfoElem};
 
 pub const CHUNK_SIZE: usize = 16;
-const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
+pub const MAX_HEIGHT: usize = 256;
+const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, MAX_HEIGHT, CHUNK_SIZE);
 
 #[derive(Component)]
 pub struct Chunk {
@@ -25,8 +26,12 @@ impl Chunk {
     }
 
     /// Set the position of the (0, 0, 0) voxel
-    pub fn with_position(mut self, pos: IVec3) -> Self {
-        self.position = pos;
+    pub fn with_position(mut self, pos: IVec2) -> Self {
+        self.position = IVec3 {
+            x: pos.x,
+            y: 0,
+            z: pos.y,
+        };
         self
     }
 

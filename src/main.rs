@@ -6,6 +6,7 @@ mod voxel;
 /// Debugging UI features
 mod debug;
 
+mod terrain;
 /// Keeps track of the whole world of chunks and voxels
 mod world;
 
@@ -17,9 +18,8 @@ mod highlight;
 mod input;
 mod ui;
 
-use chunk::{Chunk, CHUNK_SIZE};
+use chunk::Chunk;
 use mesh::HasMesh;
-use voxel::Voxel;
 
 use bevy::color::palettes::css::WHITE;
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
@@ -36,7 +36,6 @@ use bevy_flycam::prelude::*;
 
 use highlight::SelectedVoxel;
 use material::{VoxelMaterial, VoxelMaterialResource};
-use ndarray::s as slice;
 
 fn main() {
     let mut app = App::new();
@@ -79,7 +78,7 @@ fn main() {
         (
             make_camera,
             material::make_voxel_material,
-            generate_chunks,
+            terrain::generate_chunks,
             ui::draw_ui,
         ),
     )
@@ -97,7 +96,7 @@ fn main() {
 
 fn make_camera(mut commands: Commands) {
     let mut ent = commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-10.0, 4.5, -10.0).looking_at(
+        transform: Transform::from_xyz(-10.0, 4.5 + 80.0, -10.0).looking_at(
             Vec3 {
                 y: 4.5,
                 ..default()
@@ -109,30 +108,14 @@ fn make_camera(mut commands: Commands) {
             far: 4096.0,
             ..default()
         }),
+        camera: Camera {
+            clear_color: ClearColorConfig::Custom(Color::linear_rgb(0.13, 0.65, 0.92)),
+            ..default()
+        },
         ..default()
     });
     #[cfg(feature = "flycam")]
     ent.insert(FlyCam);
-}
-
-fn generate_chunks(mut commands: Commands, mut world: ResMut<world::World>) {
-    for x in 0..8 {
-        for z in 0..8 {
-            let pos = IVec3 {
-                x: x * CHUNK_SIZE as i32,
-                y: 0,
-                z: z * CHUNK_SIZE as i32,
-            };
-            let mut chunk = Chunk::new().with_position(pos);
-            chunk
-                .slice_mut(slice![0..CHUNK_SIZE, 0..x + z, 0..CHUNK_SIZE])
-                .fill(Voxel::STONE);
-            chunk
-                .slice_mut(slice![0..CHUNK_SIZE, 5..x + z, 0..CHUNK_SIZE])
-                .fill(Voxel::GRASS);
-            world.add_chunk(pos, commands.spawn((Name::new("Chunk"), chunk)).id());
-        }
-    }
 }
 
 /// Find any [`Chunk`]s which haven't yet had their meshes generated and add them.

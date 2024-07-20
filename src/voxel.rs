@@ -1,6 +1,6 @@
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Voxel {
-    kind: VoxelKind,
+    pub kind: VoxelKind,
 }
 
 impl Voxel {
@@ -14,6 +14,10 @@ impl Voxel {
 
     pub const GRASS: Self = Self {
         kind: VoxelKind::Grass,
+    };
+
+    pub const WATER: Self = Self {
+        kind: VoxelKind::Water,
     };
 
     pub fn should_mesh(&self) -> bool {
@@ -36,4 +40,7 @@ pub enum VoxelKind {
     Air = 255,
     Stone = 0,
     Grass = 1,
+    Water = 2,
+    Snow = 3,
+    Dirt = 4,
 }

@@ -3,6 +3,7 @@ use crate::highlight::SelectedVoxel;
 use crate::mesh::HasMesh;
 use crate::world;
 use bevy::prelude::*;
+use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 pub fn check_input(
     mut commands: Commands,
@@ -10,6 +11,7 @@ pub fn check_input(
     selected: ResMut<SelectedVoxel>,
     world: Res<world::World>,
     mut chunks: Query<&mut Chunk>,
+    mut q_windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         if let Some(selected_voxel) = selected.0 {
@@ -31,4 +33,9 @@ pub fn check_input(
             commands.entity(chunk).remove::<HasMesh>();
         }
     }
+
+    // lock cursor to window
+    let mut primary_window = q_windows.single_mut();
+    primary_window.cursor.visible = true;
+    primary_window.cursor.grab_mode = CursorGrabMode::Locked;
 }

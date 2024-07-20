@@ -25,11 +25,17 @@ var<private> VOXEL_NORMALS: array<vec3<f32>, 6> = array<vec3<f32>, 6>(
     vec3(0., 1., 0.),
 );
 
-var<private> VOXEL_COLORS: array<vec4<f32>, 2> = array<vec4<f32>, 2>(
+var<private> VOXEL_COLORS: array<vec4<f32>, 5> = array<vec4<f32>, 5>(
     // Stone
-    vec4(0.2, 0.2, 0.2, 1.0),
+    vec4(0.2, 0.2, 0.2, 255.0),
     // Grass
-    vec4(0.0, 1.0, 0.0, 1.0),
+    vec4(0.0, 1.0, 0.0, 255.0),
+    // Water
+    vec4(0.0, 0.0, 1.0, 5.0),
+    // Snow
+    vec4(1.0, 1.0, 1.0, 255.0),
+    // Dirt
+    vec4(0.435, 0.306, 0.216, 255.0)
 );
 
 struct VertexOut {
@@ -42,7 +48,7 @@ struct VertexOut {
 // vertex_data bitfield
 // N - Normal index
 // M - Material
-// XXXXXXXX XXXXXXXX XXXXXXXX XXXXXMNNN
+// XXXXXXXX XXXXXXXX XXXXXXXX XXXMMMNNN
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOut {
@@ -74,7 +80,7 @@ fn fragment(
     let diff_strength = max(dot(norm, light_dir), 0.0);
     let diff_color = light_color * diff_strength;
     let ambient_color = light_color * AMBIENT_STRENGTH;
-    let material_color = VOXEL_COLORS[extractBits(mesh.vertex_data, 3u, 1u)];
+    let material_color = VOXEL_COLORS[extractBits(mesh.vertex_data, 3u, 3u)];
     var out = material_color * (ambient_color + diff_color);
     if bool(has_selected) && is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
         out *= 0.7;
