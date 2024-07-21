@@ -6,7 +6,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
-const GRAVITY: f32 = 0.1;
+const GRAVITY: f32 = 40.0;
 const JUMP_VELOCITY: f32 = 10.0;
 
 pub fn player_move(
@@ -20,7 +20,7 @@ pub fn player_move(
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
 
-    vel.y -= GRAVITY;
+    vel.y -= GRAVITY * time.delta_seconds();
 
     *pos += *vel * time.delta_seconds();
 
