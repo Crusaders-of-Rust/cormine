@@ -57,8 +57,6 @@ impl Material for VoxelMaterial {
         Ok(())
     }
     fn alpha_mode(&self) -> AlphaMode {
-        // messes up chunk rendering :sob:
-        // AlphaMode::Blend
         AlphaMode::Opaque
     }
 }

@@ -42,6 +42,7 @@ use bevy_flycam::prelude::*;
 
 use highlight::SelectedVoxel;
 use material::{VoxelMaterial, VoxelMaterialResource};
+use voxel::VoxelPosition;
 
 fn main() {
     let mut app = App::new();
@@ -153,9 +154,26 @@ fn generate_chunk_meshes(
     query: Query<(Entity, &Chunk), Without<HasMesh>>,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<VoxelMaterialResource>,
+    world: Res<world::World>,
+    chunks: Query<&Chunk>,
 ) {
     for (ent, chunk) in query.iter() {
-        let mesh = mesh::from_chunk(chunk);
+        // get all adjacent chunks
+        let mut adj_chunks: Vec<&Chunk> = vec![];
+        let chunk_pos = chunk.position();
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                if dx == 0 && dz == 0 { continue; }
+                let pos = VoxelPosition::new(IVec3 { x: chunk_pos.x() + dx * 16, y: 0, z: chunk_pos.z() + dz * 16 });
+                let Some(chunk_ent) = world.chunk_containing(pos) else {
+                    continue;
+                };
+                let chunk = chunks.get(chunk_ent).expect("Chunk does not exist");
+                adj_chunks.push(chunk);
+            }
+        }
+
+        let mesh = mesh::from_chunk(chunk, adj_chunks);
         commands
             .entity(ent)
             .insert(MaterialMeshBundle {

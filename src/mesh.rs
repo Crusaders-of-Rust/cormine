@@ -1,5 +1,6 @@
 use crate::chunk::Chunk;
 use bevy::math::vec3;
+use std::collections::HashMap;
 use std::ops::Add;
 
 use crate::voxel::{Voxel, VoxelKind};
@@ -17,7 +18,7 @@ pub struct HasMesh;
 pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
-pub fn from_chunk(chunk: &Chunk) -> Mesh {
+pub fn from_chunk(chunk: &Chunk, adj_chunks: Vec<&Chunk>) -> Mesh {
     trace!("Generating chunk mesh @ {:?}", chunk.position());
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -47,34 +48,53 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
     ];
 
     /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a chunk boundary
-    fn get_adjacent_voxels(arr: &Array3<Voxel>, pos: Vec3) -> [Voxel; 6] {
+    fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: Vec3) -> [Voxel; 6] {
         let pos = pos.as_ivec3();
-        fn get_adjacent_voxel(arr: &Array3<Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
+        fn get_adjacent_voxel(map: &HashMap<[i32; 3], Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
             let pos = pos.add(dir);
-            let usize_pos = pos.to_array().map(|x| x as usize);
-            *arr.get(usize_pos).unwrap_or(&Voxel::AIR)
+            let item = map.get(&pos.to_array());
+            if item.is_none() {
+                //println!("No voxel at {:?} {:#?}", pos, map.keys());
+            }
+            *item.unwrap_or(&Voxel::AIR)
         }
         [
-            get_adjacent_voxel(arr, pos, IVec3::NEG_Z),
-            get_adjacent_voxel(arr, pos, IVec3::Z),
-            get_adjacent_voxel(arr, pos, IVec3::NEG_X),
-            get_adjacent_voxel(arr, pos, IVec3::X),
-            get_adjacent_voxel(arr, pos, IVec3::NEG_Y),
-            get_adjacent_voxel(arr, pos, IVec3::Y),
+            get_adjacent_voxel(map, pos, IVec3::NEG_Z),
+            get_adjacent_voxel(map, pos, IVec3::Z),
+            get_adjacent_voxel(map, pos, IVec3::NEG_X),
+            get_adjacent_voxel(map, pos, IVec3::X),
+            get_adjacent_voxel(map, pos, IVec3::NEG_Y),
+            get_adjacent_voxel(map, pos, IVec3::Y),
         ]
     }
 
     let mut vertices = Vec::new();
     let mut vertex_data = Vec::new();
 
+    let base_voxels = chunk.array().clone();
+    let mut voxels: HashMap<[i32; 3], Voxel> = base_voxels
+        .indexed_iter()
+        .map(|((x, y, z), v)| {
+            let pos = [x as i32, y as i32, z as i32];
+            (pos, *v)
+        })
+        .collect();
+
+    for adj_chunk in adj_chunks {
+        for (adj_pos, adj_voxel) in adj_chunk.iter() {
+            let new_pos = [(adj_chunk.position().x() + adj_pos.0 as i32) - chunk.position().x(), adj_pos.1 as i32, (adj_chunk.position().z() + adj_pos.2 as i32) - chunk.position().z()];
+            voxels.insert(new_pos, *adj_voxel);
+        }
+    }
+
     fn add_cube(
-        chunk: &Chunk,
+        voxels: &HashMap<[i32; 3], Voxel>,
         vertices: &mut Vec<[f32; 3]>,
         vertex_data: &mut Vec<u32>,
         material: VoxelKind,
         pos: Vec3,
     ) {
-        let adjacent = get_adjacent_voxels(chunk.array(), pos);
+        let adjacent = get_adjacent_voxels(voxels, pos);
         let voxel_size = Vec3::new(1.0, material.height(), 1.0);
         for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
             let mut per_vertex_data = VertexData::new();
@@ -101,7 +121,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
 
     for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_cube(chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
+        add_cube(&voxels, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
     info!("Rendered {} tris", vertices.len() / 3);
 

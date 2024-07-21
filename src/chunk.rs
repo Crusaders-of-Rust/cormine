@@ -29,6 +29,10 @@ impl ChunkPosition {
     pub fn as_vec3(&self) -> Vec3 {
         Vec3::new(self.x() as _, 0.0, self.z() as _)
     }
+
+    pub fn as_ivec3(&self) -> IVec3 {
+        IVec3::new(self.x() as _, 0, self.z() as _)
+    }
 }
 
 impl From<VoxelPosition> for ChunkPosition {

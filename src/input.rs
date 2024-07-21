@@ -1,7 +1,7 @@
 use crate::chunk::Chunk;
 use crate::highlight::SelectedVoxel;
 use crate::mesh::HasMesh;
-use crate::voxel::VoxelKind;
+use crate::voxel::{VoxelKind, VoxelPosition};
 use crate::world;
 use bevy::prelude::*;
 
@@ -67,7 +67,16 @@ pub fn check_input(
             let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
             voxel.clear();
-            commands.entity(chunk).remove::<HasMesh>();
+
+            // clear HasMesh flag from all adjacent chunks
+            for x in -1..=1 {
+                for z in -1..=1 {
+                    let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(x * 16, 0, z * 16);
+                    if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                        commands.entity(adj_chunk).remove::<HasMesh>();
+                    }
+                }
+            }
         }
 
         #[cfg(not(feature = "flycam"))]
@@ -87,7 +96,16 @@ pub fn check_input(
             let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
             voxel.kind = VoxelKind::Stone;
-            commands.entity(chunk).remove::<HasMesh>();
+    
+            // clear HasMesh flag from all adjacent chunks
+            for x in -1..=1 {
+                for z in -1..=1 {
+                    let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(x * 16, 0, z * 16);
+                    if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                        commands.entity(adj_chunk).remove::<HasMesh>();
+                    }
+                }
+            }
         }
     }
 
