@@ -108,11 +108,15 @@ impl Voxel {
     };
 
     pub fn should_mesh(&self) -> bool {
-        !matches!(self.kind, VoxelKind::Air)
+        self.kind().should_mesh()
+    }
+
+    pub fn transparent(&self) -> bool {
+        self.kind().transparent()
     }
 
     pub fn has_collision(&self) -> bool {
-        !matches!(self.kind, VoxelKind::Air | VoxelKind::Water)
+        self.kind().has_collision()
     }
 
     pub fn kind(&self) -> VoxelKind {
@@ -124,7 +128,7 @@ impl Voxel {
     }
 }
 
-#[derive(Default, Copy, Clone, Debug)]
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum VoxelKind {
     #[default]
@@ -134,4 +138,18 @@ pub enum VoxelKind {
     Water = 2,
     Snow = 3,
     Dirt = 4,
+}
+
+impl VoxelKind {
+    pub fn should_mesh(&self) -> bool {
+        !matches!(self, VoxelKind::Air)
+    }
+
+    pub fn transparent(&self) -> bool {
+        matches!(self, VoxelKind::Air | VoxelKind::Water)
+    }
+
+    pub fn has_collision(&self) -> bool {
+        !matches!(self, VoxelKind::Air | VoxelKind::Water)
+    }
 }

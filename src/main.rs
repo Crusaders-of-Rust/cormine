@@ -111,7 +111,7 @@ fn main() {
 
 fn make_camera(mut commands: Commands) {
     let bundle = Camera3dBundle {
-        transform: Transform::from_xyz(64.0, 4.5 + 128.0, 64.0).looking_at(
+        transform: Transform::from_xyz(8.0, 4.5 + 128.0, 8.0).looking_at(
             Vec3 {
                 y: 4.5,
                 ..default()

@@ -67,7 +67,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
     let mut vertices = Vec::new();
     let mut vertex_data = Vec::new();
 
-    fn add_face(
+    fn add_cube(
         chunk: &Chunk,
         vertices: &mut Vec<[f32; 3]>,
         vertex_data: &mut Vec<u32>,
@@ -80,7 +80,11 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
             per_vertex_data.set_normal_idx(i);
             per_vertex_data.set_material(material);
             // Don't render faces touching a solid voxel
-            if adj.should_mesh() {
+            if !adj.transparent() {
+                continue;
+            }
+            // Don't render faces between multiple transparent blocks of the same type
+            if adj.transparent() && adj.kind() == material {
                 continue;
             }
             let verts = face.map(|f| (pos + VERTICES[f]).to_array());
@@ -96,8 +100,9 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
 
     for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_face(chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
+        add_cube(chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
+    info!("Rendered {} tris", vertices.len() / 3);
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));
     mesh.insert_attribute(
