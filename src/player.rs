@@ -30,9 +30,7 @@ pub fn player_move(
         let check_pos = player_pos.as_ivec3() + offset + IVec3::new(0, -2, 0);
         let voxel_pos = VoxelPosition::new(check_pos);
 
-        let Some(chunk_ent) = world.chunk_containing(voxel_pos) else {
-            return None;
-        };
+        let chunk_ent = world.chunk_containing(voxel_pos)?;
 
         let chunk = chunks.get(chunk_ent).unwrap();
         Some(chunk.voxel(voxel_pos.into()))

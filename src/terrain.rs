@@ -36,11 +36,11 @@ pub fn ground_height_to_voxel(height: usize, is_top_level: bool) -> VoxelKind {
     if height < rand::thread_rng().gen_range(49..51) || height > 96 {
         return VoxelKind::Stone;
     }
-    return if is_top_level {
+    if is_top_level {
         VoxelKind::Grass
     } else {
         VoxelKind::Dirt
-    };
+    }
 }
 
 pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::World>) {
@@ -57,7 +57,7 @@ pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::W
                 for z in 0..CHUNK_SIZE {
                     let noise_val = noise_map.get_value(
                         (chunk_x as usize * CHUNK_SIZE) + x,
-                        (chunk_z as usize * CHUNK_SIZE) as usize + z,
+                        (chunk_z as usize * CHUNK_SIZE) + z,
                     );
                     let mut height: usize = (noise_val.powf(2.0) * MAX_HEIGHT as f64) as usize;
                     height += 64;

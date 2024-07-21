@@ -1,3 +1,7 @@
+// Bevy queries are necessarily verbose
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::type_complexity)]
+
 mod chunk;
 mod mesh;
 mod voxel;

@@ -96,7 +96,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
 
     for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = vec3(x as f32, y as f32, z as f32);
-        add_face(&chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
+        add_face(chunk, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));

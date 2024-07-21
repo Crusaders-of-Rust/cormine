@@ -26,7 +26,7 @@ pub fn update_selected_voxel(
 
     let mut step: f32 = 0.0;
     while step <= SELECT_DISTANCE {
-        let check = (pos + direction * step as f32).as_ivec3();
+        let check = (pos + direction * step).as_ivec3();
         let check = VoxelPosition::new(check);
 
         match world.voxel_at(check, &chunks) {
@@ -37,7 +37,7 @@ pub fn update_selected_voxel(
                 mat.selected_voxel = check.as_vec3();
 
                 if step != 0.0 {
-                    let prev_step = (pos + direction * (step - STEP_SIZE) as f32).as_ivec3();
+                    let prev_step = (pos + direction * (step - STEP_SIZE)).as_ivec3();
                     selected.1 = Some(VoxelPosition::new(prev_step))
                 } else {
                     selected.1 = None;
