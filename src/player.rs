@@ -53,7 +53,7 @@ pub fn player_move(
     // snap to ground
     if vel.y < 0.0 && is_on_ground {
         vel.y = 0.0;
-        pos.y = (pos.y + 0.05).floor();
+        pos.y = (pos.y + 0.1).floor();
     }
 
     // allow jumping if on ground or in water

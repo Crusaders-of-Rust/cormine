@@ -68,13 +68,31 @@ pub fn check_input(
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
             voxel.clear();
 
-            // clear HasMesh flag from all adjacent chunks
-            for x in -1..=1 {
-                for z in -1..=1 {
-                    let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(x * 16, 0, z * 16);
-                    if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
-                        commands.entity(adj_chunk).remove::<HasMesh>();
-                    }
+            commands.entity(chunk).remove::<HasMesh>();
+            // clear HasMesh flag from potential adjacent chunk
+            // check if selected voxel is on chunk boundary
+            if selected_voxel.x() % 16 == 0 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(-16, 0, 0);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.x() % 16 == 15 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(16, 0, 0);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.z() % 16 == 0 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, -16);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.z() % 16 == 15 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, 16);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
                 }
             }
         }
@@ -97,13 +115,31 @@ pub fn check_input(
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
             voxel.kind = VoxelKind::Stone;
     
-            // clear HasMesh flag from all adjacent chunks
-            for x in -1..=1 {
-                for z in -1..=1 {
-                    let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(x * 16, 0, z * 16);
-                    if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
-                        commands.entity(adj_chunk).remove::<HasMesh>();
-                    }
+            commands.entity(chunk).remove::<HasMesh>();
+            // clear HasMesh flag from potential adjacent chunk
+            // check if selected voxel is on chunk boundary
+            if selected_voxel.x() % 16 == 0 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(-16, 0, 0);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.x() % 16 == 15 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(16, 0, 0);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.z() % 16 == 0 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, -16);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
+                }
+            }
+            if selected_voxel.z() % 16 == 15 {
+                let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, 16);
+                if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+                    commands.entity(adj_chunk).remove::<HasMesh>();
                 }
             }
         }
