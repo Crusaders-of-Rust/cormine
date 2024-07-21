@@ -60,7 +60,7 @@ pub fn check_input(
     let camera_transform = camera_transform.single();
 
     if buttons.just_pressed(MouseButton::Left) {
-        if let Some(selected_voxel) = selected.0 {
+        if let Some(selected_voxel) = selected.to_break {
             let chunk = world
                 .chunk_containing(selected_voxel)
                 .expect("Selected voxel is not in a chunk");
@@ -80,7 +80,7 @@ pub fn check_input(
     }
 
     if buttons.just_pressed(MouseButton::Right) {
-        if let Some(selected_voxel) = selected.1 {
+        if let Some(selected_voxel) = selected.to_place {
             let chunk = world
                 .chunk_containing(selected_voxel)
                 .expect("Selected voxel is not in a chunk");

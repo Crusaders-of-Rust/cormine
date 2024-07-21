@@ -6,8 +6,10 @@ use crate::voxel::VoxelPosition;
 use crate::world;
 
 #[derive(Resource, Default)]
-//                       target voxel to break      target voxel to place
-pub struct SelectedVoxel(pub Option<VoxelPosition>, pub Option<VoxelPosition>);
+pub struct SelectedVoxel {
+    pub to_break: Option<VoxelPosition>,
+    pub to_place: Option<VoxelPosition>,
+}
 
 const SELECT_DISTANCE: f32 = 32.0;
 const STEP_SIZE: f32 = 0.05;
@@ -31,16 +33,16 @@ pub fn update_selected_voxel(
 
         match world.voxel_at(check, &chunks) {
             Some(voxel) if voxel.should_mesh() => {
-                selected.0 = Some(check);
+                selected.to_break = Some(check);
                 let mat = materials.get_mut(&material_handle.handle).unwrap();
                 mat.has_selected = 1;
                 mat.selected_voxel = check.as_vec3();
 
                 if step != 0.0 {
                     let prev_step = (pos + direction * (step - STEP_SIZE)).as_ivec3();
-                    selected.1 = Some(VoxelPosition::new(prev_step))
+                    selected.to_place = Some(VoxelPosition::new(prev_step))
                 } else {
-                    selected.1 = None;
+                    selected.to_place = None;
                 }
 
                 return;
@@ -50,9 +52,9 @@ pub fn update_selected_voxel(
             }
         }
     }
-    if selected.0.is_some() {
+    if selected.to_break.is_some() {
         let mat = materials.get_mut(&material_handle.handle).unwrap();
         mat.has_selected = 0;
-        selected.0 = None;
+        selected.to_break = None;
     }
 }
