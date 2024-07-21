@@ -1,5 +1,10 @@
+use crate::{
+    chunk::Chunk,
+    input::{CameraVelocity, JumpState},
+    voxel::{Voxel, VoxelKind, VoxelPosition},
+    world::World,
+};
 use bevy::prelude::*;
-use crate::{chunk::Chunk, input::{CameraVelocity, JumpState}, voxel::{Voxel, VoxelKind, VoxelPosition}, world::World};
 
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
@@ -7,7 +12,7 @@ pub fn player_move(
     time: Res<Time>,
     world: Res<World>,
     chunks: Query<&Chunk>,
-    jump_state: Res<JumpState>
+    jump_state: Res<JumpState>,
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
@@ -28,7 +33,7 @@ pub fn player_move(
         let Some(chunk_ent) = world.chunk_containing(voxel_pos) else {
             return None;
         };
-        
+
         let chunk = chunks.get(chunk_ent).unwrap();
         Some(chunk.voxel(voxel_pos.into()))
     };
@@ -37,13 +42,14 @@ pub fn player_move(
         let Some(voxel) = get_voxel(player_pos, offset) else {
             return false;
         };
-        
+
         voxel.has_collision()
     };
 
     let is_on_ground = has_collision(*pos, IVec3::new(0, 0, 0));
-    let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0)).map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
-    
+    let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0))
+        .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
+
     // snap to ground
     if vel.y < 0.0 && is_on_ground {
         vel.y = 0.0;
@@ -71,20 +77,28 @@ pub fn player_move(
         vel.y = 0.0;
     }
 
-    if vel.x > 0.0 && (has_collision(*pos, IVec3::new(1, 0, 0)) || has_collision(*pos, IVec3::new(1, 1, 0))) {
+    if vel.x > 0.0
+        && (has_collision(*pos, IVec3::new(1, 0, 0)) || has_collision(*pos, IVec3::new(1, 1, 0)))
+    {
         pos.x = (pos.x + 0.1).floor();
         vel.x = 0.0;
-    } 
-    if vel.x < 0.0 && (has_collision(*pos, IVec3::new(-1, 0, 0)) || has_collision(*pos, IVec3::new(-1, 1, 0))) {
+    }
+    if vel.x < 0.0
+        && (has_collision(*pos, IVec3::new(-1, 0, 0)) || has_collision(*pos, IVec3::new(-1, 1, 0)))
+    {
         pos.x = (pos.x + 0.1).floor();
         vel.x = 0.0;
     }
 
-    if vel.z > 0.0 && (has_collision(*pos, IVec3::new(0, 0, 1)) || has_collision(*pos, IVec3::new(0, 1, 1))) {
+    if vel.z > 0.0
+        && (has_collision(*pos, IVec3::new(0, 0, 1)) || has_collision(*pos, IVec3::new(0, 1, 1)))
+    {
         pos.z = (pos.z + 0.1).floor();
         vel.z = 0.0;
     }
-    if vel.z < 0.0 && (has_collision(*pos, IVec3::new(0, 0, -1)) || has_collision(*pos, IVec3::new(0, 1, -1))) {
+    if vel.z < 0.0
+        && (has_collision(*pos, IVec3::new(0, 0, -1)) || has_collision(*pos, IVec3::new(0, 1, -1)))
+    {
         pos.z = (pos.z + 0.1).floor();
         vel.z = 0.0;
     }

@@ -136,7 +136,6 @@ fn make_camera(mut commands: Commands) {
     {
         commands.spawn(bundle);
     }
-    
 }
 
 /// Find any [`Chunk`]s which haven't yet had their meshes generated and add them.

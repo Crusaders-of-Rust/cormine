@@ -9,9 +9,14 @@ use bevy::input::mouse::MouseMotion;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 #[derive(Resource, Default)]
-pub struct CameraVelocity { pub vel: Vec3 }
+pub struct CameraVelocity {
+    pub vel: Vec3,
+}
 #[derive(Resource, Default)]
-pub struct JumpState { pub pressed: bool, pub holding: bool }
+pub struct JumpState {
+    pub pressed: bool,
+    pub holding: bool,
+}
 
 pub fn hook_cursor(mut qwindow: Query<&mut Window, With<PrimaryWindow>>) {
     let window = &mut qwindow.single_mut();
@@ -22,7 +27,7 @@ pub fn hook_cursor(mut qwindow: Query<&mut Window, With<PrimaryWindow>>) {
 pub fn player_look(
     qwindow: Query<&Window, With<PrimaryWindow>>,
     mut mouse: EventReader<MouseMotion>,
-    mut camera_transform: Query<&mut Transform, With<Camera>>
+    mut camera_transform: Query<&mut Transform, With<Camera>>,
 ) {
     let window = qwindow.single();
     let mut camera_transform = camera_transform.single_mut();
@@ -33,7 +38,8 @@ pub fn player_look(
             yaw -= ev.delta.x * 0.002;
             pitch -= ev.delta.y * 0.002;
             pitch = pitch.clamp(-1.54, 1.54);
-            camera_transform.rotation = Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+            camera_transform.rotation =
+                Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
         }
     }
 }
@@ -48,7 +54,7 @@ pub fn check_input(
     mut chunks: Query<&mut Chunk>,
     mut camera_velocity: ResMut<CameraVelocity>,
     mut jump_state: ResMut<JumpState>,
-    camera_transform: Query<&Transform, With<Camera>>
+    camera_transform: Query<&Transform, With<Camera>>,
 ) {
     let window = &mut qwindow.single_mut();
     let camera_transform = camera_transform.single();
@@ -102,17 +108,13 @@ pub fn check_input(
             for key in keys.get_pressed() {
                 if *key == KeyCode::KeyW {
                     *camera_velocity += 7.5 * camera_forward;
-                }
-                else if *key == KeyCode::KeyS {
+                } else if *key == KeyCode::KeyS {
                     *camera_velocity -= 7.5 * camera_forward;
-                }
-                else if *key == KeyCode::KeyA {
-                    *camera_velocity -= 7.5 *  camera_right;
-                }
-                else if *key == KeyCode::KeyD {
+                } else if *key == KeyCode::KeyA {
+                    *camera_velocity -= 7.5 * camera_right;
+                } else if *key == KeyCode::KeyD {
                     *camera_velocity += 7.5 * camera_right;
-                }
-                else if *key == KeyCode::Space {
+                } else if *key == KeyCode::Space {
                     jump_state.holding = true;
                 }
             }
