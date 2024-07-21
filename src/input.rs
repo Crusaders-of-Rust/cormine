@@ -100,9 +100,8 @@ pub fn check_input(
             }
 
             let camera_velocity = &mut camera_velocity.vel;
-            let looking_at = camera_transform.local_z();
-            let camera_forward = -Vec3::new(looking_at.x, 0., looking_at.z);
-            let camera_right = Vec3::new(looking_at.z, 0., -looking_at.x);
+            let camera_forward = camera_transform.forward().with_y(0.0);
+            let camera_right = camera_transform.right().with_y(0.0);
 
             jump_state.holding = false;
             for key in keys.get_pressed() {
