@@ -75,6 +75,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
         pos: Vec3,
     ) {
         let adjacent = get_adjacent_voxels(chunk.array(), pos);
+        let voxel_size = Vec3::new(1.0, material.height(), 1.0);
         for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
             let mut per_vertex_data = VertexData::new();
             per_vertex_data.set_normal_idx(i);
@@ -87,7 +88,7 @@ pub fn from_chunk(chunk: &Chunk) -> Mesh {
             if adj.transparent() && adj.kind() == material {
                 continue;
             }
-            let verts = face.map(|f| (pos + VERTICES[f]).to_array());
+            let verts = face.map(|f| (pos + VERTICES[f] * voxel_size).to_array());
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
