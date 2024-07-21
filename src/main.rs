@@ -100,7 +100,12 @@ fn main() {
     {
         app.add_systems(Startup, input::hook_cursor);
         app.add_systems(Update, input::player_look);
-        app.add_systems(Update, player::player_move);
+        app.add_systems(
+            Update,
+            player::player_move
+                .after(input::player_look)
+                .after(input::check_input),
+        );
     }
 
     #[cfg(feature = "debug")]
