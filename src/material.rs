@@ -8,20 +8,49 @@ use bevy::render::mesh::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource::{
     AsBindGroup, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
 };
+use bevy::render::texture::ImageSampler;
 
-pub fn make_voxel_material(mut commands: Commands, mut materials: ResMut<Assets<VoxelMaterial>>) {
+pub fn make_voxel_material(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<VoxelMaterial>>,
+    assets: Res<AssetServer>,
+) {
+    let img_handle = assets.load("images/blocks.png");
     let handle = materials.add(VoxelMaterial {
         light_color: Srgba::WHITE.into(),
         light_dir: Vec3::new(1.0, 1.0, 1.0),
         selected_voxel: Vec3::ZERO,
         has_selected: 0,
+        block_textures: img_handle.clone(),
     });
-    commands.insert_resource(VoxelMaterialResource { handle });
+    commands.insert_resource(VoxelMaterialResource {
+        handle,
+        img_handle,
+        textures_loaded: false,
+    });
+}
+
+// We have to reinterpret the image lazily as assets are loaded asynchronously
+pub fn process_block_texture(
+    mut images: ResMut<Assets<Image>>,
+    mut material: ResMut<VoxelMaterialResource>,
+) {
+    if material.textures_loaded {
+        return;
+    }
+    let Some(image) = images.get_mut(&material.img_handle) else {
+        return;
+    };
+    image.reinterpret_stacked_2d_as_array(5);
+    image.sampler = ImageSampler::nearest();
+    material.textures_loaded = true;
 }
 
 #[derive(Resource)]
 pub struct VoxelMaterialResource {
     pub(crate) handle: Handle<VoxelMaterial>,
+    img_handle: Handle<Image>,
+    textures_loaded: bool,
 }
 
 #[derive(AsBindGroup, Reflect, Asset, Debug, Clone)]
@@ -34,6 +63,9 @@ pub struct VoxelMaterial {
     pub selected_voxel: Vec3,
     #[uniform(4)]
     pub has_selected: u32,
+    #[texture(5, dimension = "2d_array")]
+    #[sampler(6)]
+    block_textures: Handle<Image>,
 }
 
 impl Material for VoxelMaterial {

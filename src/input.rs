@@ -114,7 +114,7 @@ pub fn check_input(
             let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
             voxel.kind = VoxelKind::Stone;
-    
+
             commands.entity(chunk).remove::<HasMesh>();
             // clear HasMesh flag from potential adjacent chunk
             // check if selected voxel is on chunk boundary

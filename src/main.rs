@@ -91,6 +91,7 @@ fn main() {
             ui::draw_ui,
         ),
     )
+    .add_systems(Update, material::process_block_texture)
     .add_systems(Update, (input::check_input, generate_chunk_meshes))
     .add_systems(Update, highlight::update_selected_voxel);
 
@@ -163,8 +164,14 @@ fn generate_chunk_meshes(
         let chunk_pos = chunk.position();
         for dx in -1..=1 {
             for dz in -1..=1 {
-                if dx == 0 && dz == 0 { continue; }
-                let pos = VoxelPosition::new(IVec3 { x: chunk_pos.x() + dx * 16, y: 0, z: chunk_pos.z() + dz * 16 });
+                if dx == 0 && dz == 0 {
+                    continue;
+                }
+                let pos = VoxelPosition::new(IVec3 {
+                    x: chunk_pos.x() + dx * 16,
+                    y: 0,
+                    z: chunk_pos.z() + dz * 16,
+                });
                 let Some(chunk_ent) = world.chunk_containing(pos) else {
                     continue;
                 };

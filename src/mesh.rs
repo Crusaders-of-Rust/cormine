@@ -9,7 +9,6 @@ use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::VertexFormat;
-use ndarray::Array3;
 
 #[derive(Component)]
 /// Marker component indicating a mesh is present and up to date
@@ -82,7 +81,11 @@ pub fn from_chunk(chunk: &Chunk, adj_chunks: Vec<&Chunk>) -> Mesh {
 
     for adj_chunk in adj_chunks {
         for (adj_pos, adj_voxel) in adj_chunk.iter() {
-            let new_pos = [(adj_chunk.position().x() + adj_pos.0 as i32) - chunk.position().x(), adj_pos.1 as i32, (adj_chunk.position().z() + adj_pos.2 as i32) - chunk.position().z()];
+            let new_pos = [
+                (adj_chunk.position().x() + adj_pos.0 as i32) - chunk.position().x(),
+                adj_pos.1 as i32,
+                (adj_chunk.position().z() + adj_pos.2 as i32) - chunk.position().z(),
+            ];
             voxels.insert(new_pos, *adj_voxel);
         }
     }
@@ -113,6 +116,7 @@ pub fn from_chunk(chunk: &Chunk, adj_chunks: Vec<&Chunk>) -> Mesh {
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
                 // TODO: vertex_data should hold more than just the normal index
+                per_vertex_data.set_uv(idx);
                 vertex_data.push(per_vertex_data.to_u32());
                 vertices.push(verts[idx]);
             }
@@ -150,6 +154,12 @@ impl VertexData {
 
     pub fn set_material(&mut self, kind: VoxelKind) {
         self.0 |= (kind as u32) << 3;
+    }
+
+    pub fn set_uv(&mut self, uv: usize) {
+        assert!(uv <= 3);
+        self.0 &= !(0b11 << 6);
+        self.0 |= (uv as u32) << 6;
     }
 
     pub fn to_u32(self) -> u32 {

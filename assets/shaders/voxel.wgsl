@@ -5,7 +5,8 @@
 @group(2) @binding(2) var<uniform> light_dir: vec3<f32>;
 @group(2) @binding(3) var<uniform> selected_voxel: vec3<f32>;
 @group(2) @binding(4) var<uniform> has_selected: u32;
-
+@group(2) @binding(5) var texture: texture_2d_array<f32>;
+@group(2) @binding(6) var texture_sampler: sampler;
 
 const AMBIENT_STRENGTH: f32 = 0.1;
 const OUTLINE_THICKNESS: f32 = 0.1;
@@ -25,17 +26,11 @@ var<private> VOXEL_NORMALS: array<vec3<f32>, 6> = array<vec3<f32>, 6>(
     vec3(0., 1., 0.),
 );
 
-var<private> VOXEL_COLORS: array<vec4<f32>, 5> = array<vec4<f32>, 5>(
-    // Stone
-    vec4(0.2, 0.2, 0.2, 255.0),
-    // Grass
-    vec4(0.0, 1.0, 0.0, 255.0),
-    // Water
-    vec4(0.0, 0.0, 1.0, 5.0),
-    // Snow
-    vec4(1.0, 1.0, 1.0, 255.0),
-    // Dirt
-    vec4(0.435, 0.306, 0.216, 255.0)
+var<private> VOXEL_UVS: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+    vec2(1.0, 0.0),
+    vec2(0.0, 0.0),
+    vec2(0.0, 1.0),
+    vec2(1.0, 1.0),
 );
 
 struct VertexOut {
@@ -43,12 +38,15 @@ struct VertexOut {
     @location(0) position: vec3<f32>,
     @location(1) vertex_data: u32,
     @location(2) normal: vec3<f32>,
+    @location(3) uv: vec2<f32>,
+
 }
 
 // vertex_data bitfield
 // N - Normal index
 // M - Material
-// XXXXXXXX XXXXXXXX XXXXXXXX XXXMMMNNN
+// U - UV index
+// XXXXXXXX XXXXXXXX XXXXXXXX XUUMMMNNN
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOut {
@@ -61,6 +59,7 @@ fn vertex(vertex: Vertex) -> VertexOut {
     out.position = world_position.xyz;
     out.vertex_data = vertex.vertex_data;
     out.normal = VOXEL_NORMALS[normal_idx];
+    out.uv = VOXEL_UVS[extractBits(vertex.vertex_data, 6u, 2u)];
     return out;
 }
 
@@ -80,7 +79,8 @@ fn fragment(
     let diff_strength = max(dot(norm, light_dir), 0.0);
     let diff_color = light_color * diff_strength;
     let ambient_color = light_color * AMBIENT_STRENGTH;
-    let material_color = VOXEL_COLORS[extractBits(mesh.vertex_data, 3u, 3u)];
+    let material_idx = extractBits(mesh.vertex_data, 3u, 3u);
+    let material_color = textureSample(texture, texture_sampler, mesh.uv, material_idx);
     var out = material_color * (ambient_color + diff_color);
     if bool(has_selected) && is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
         out *= 0.7;
