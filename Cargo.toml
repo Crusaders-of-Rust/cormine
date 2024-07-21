@@ -23,7 +23,7 @@ codegen-units = 1
 lto = "thin"
 
 [features]
-default = ["wireframe", "debug", "flycam"]
+default = ["wireframe", "debug"]
 wireframe = []
 debug = ["bevy_egui"]
 flycam = ["bevy_flycam"]

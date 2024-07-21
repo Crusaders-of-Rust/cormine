@@ -111,6 +111,10 @@ impl Voxel {
         !matches!(self.kind, VoxelKind::Air)
     }
 
+    pub fn has_collision(&self) -> bool {
+        !matches!(self.kind, VoxelKind::Air | VoxelKind::Water)
+    }
+
     pub fn kind(&self) -> VoxelKind {
         self.kind
     }

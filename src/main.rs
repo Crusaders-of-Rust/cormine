@@ -18,6 +18,8 @@ mod highlight;
 mod input;
 mod ui;
 
+mod player;
+
 use chunk::Chunk;
 use mesh::HasMesh;
 
@@ -67,6 +69,8 @@ fn main() {
     app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
     app.init_resource::<world::World>();
     app.init_resource::<SelectedVoxel>();
+    app.init_resource::<input::CameraVelocity>();
+    app.init_resource::<input::JumpState>();
 
     #[cfg(feature = "wireframe")]
     {
@@ -88,6 +92,13 @@ fn main() {
     #[cfg(feature = "flycam")]
     app.add_plugins(NoCameraPlayerPlugin);
 
+    #[cfg(not(feature = "flycam"))]
+    {
+        app.add_systems(Startup, input::hook_cursor);
+        app.add_systems(Update, input::player_look);
+        app.add_systems(Update, player::player_move);
+    }
+
     #[cfg(feature = "debug")]
     app.add_plugins(debug::DebugUiPlugins);
 
@@ -95,8 +106,8 @@ fn main() {
 }
 
 fn make_camera(mut commands: Commands) {
-    let mut ent = commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-10.0, 4.5 + 80.0, -10.0).looking_at(
+    let bundle = Camera3dBundle {
+        transform: Transform::from_xyz(64.0, 4.5 + 128.0, 64.0).looking_at(
             Vec3 {
                 y: 4.5,
                 ..default()
@@ -113,9 +124,19 @@ fn make_camera(mut commands: Commands) {
             ..default()
         },
         ..default()
-    });
+    };
+
     #[cfg(feature = "flycam")]
-    ent.insert(FlyCam);
+    {
+        let mut ent = commands.spawn(bundle);
+        ent.insert(FlyCam);
+    }
+
+    #[cfg(not(feature = "flycam"))]
+    {
+        commands.spawn(bundle);
+    }
+    
 }
 
 /// Find any [`Chunk`]s which haven't yet had their meshes generated and add them.

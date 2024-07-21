@@ -70,7 +70,7 @@ pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::W
                                 .voxel_mut(LocalVoxelPosition::new(x as _, y as _, z as _))
                                 .kind = VoxelKind::Stone;
                         }
-                        for y in water_floor..=height {
+                        for y in water_floor..=(height + 1) {
                             chunk
                                 .voxel_mut(LocalVoxelPosition::new(x as _, y as _, z as _))
                                 .kind = VoxelKind::Water;
