@@ -66,6 +66,11 @@ pub fn player_move(
         vel.y = 2.0;
     }
 
+    if vel.y > 0.0 && has_collision(*pos, IVec3::new(0, 2, 0)) {
+        pos.y = pos.y.floor();
+        vel.y = 0.0;
+    }
+
     if vel.x > 0.0 && (has_collision(*pos, IVec3::new(1, 0, 0)) || has_collision(*pos, IVec3::new(1, 1, 0))) {
         pos.x = (pos.x + 0.1).floor();
         vel.x = 0.0;
