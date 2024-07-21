@@ -6,6 +6,9 @@ use crate::{
 };
 use bevy::prelude::*;
 
+const GRAVITY: f32 = 0.1;
+const JUMP_VELOCITY: f32 = 10.0;
+
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
     mut camera_transform: Query<&mut Transform, With<Camera>>,
@@ -17,8 +20,7 @@ pub fn player_move(
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
 
-    // apply gravity
-    vel.y -= 0.01;
+    vel.y -= GRAVITY;
 
     *pos += *vel * time.delta_seconds();
 
@@ -56,25 +58,24 @@ pub fn player_move(
 
     // allow jumping if on ground or in water
     if jump_state.pressed && is_on_ground {
-        vel.y = 5.0;
+        vel.y = JUMP_VELOCITY;
     }
     if jump_state.holding && is_in_water {
         vel.y += 0.5;
     }
 
     // cap vertical speed in water
-    if vel.y < -5.0 && is_in_water {
-        vel.y = -5.0;
-    }
-    if vel.y > 2.0 && is_in_water {
-        vel.y = 2.0;
+    if is_in_water {
+        vel.y = vel.y.clamp(-5.0, 2.0);
     }
 
+    // Collision above head
     if vel.y > 0.0 && has_collision(*pos, IVec3::new(0, 2, 0)) {
         pos.y = pos.y.floor();
         vel.y = 0.0;
     }
 
+    // Collision in 4 cardinal directions
     if vel.x > 0.0
         && (has_collision(*pos, IVec3::new(1, 0, 0)) || has_collision(*pos, IVec3::new(1, 1, 0)))
     {
