@@ -71,7 +71,7 @@ pub fn player_move(
         vel.x = 0.0;
     } 
     if vel.x < 0.0 && (has_collision(*pos, IVec3::new(-1, 0, 0)) || has_collision(*pos, IVec3::new(-1, 1, 0))) {
-        pos.x = (pos.x - 0.1).floor() + 1.0;
+        pos.x = (pos.x + 0.1).floor();
         vel.x = 0.0;
     }
 
@@ -80,7 +80,7 @@ pub fn player_move(
         vel.z = 0.0;
     }
     if vel.z < 0.0 && (has_collision(*pos, IVec3::new(0, 0, -1)) || has_collision(*pos, IVec3::new(0, 1, -1))) {
-        pos.z = (pos.z - 0.1).floor() + 1.0;
+        pos.z = (pos.z + 0.1).floor();
         vel.z = 0.0;
     }
 }

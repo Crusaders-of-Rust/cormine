@@ -1,6 +1,7 @@
 use crate::chunk::Chunk;
 use crate::highlight::SelectedVoxel;
 use crate::mesh::HasMesh;
+use crate::voxel::VoxelKind;
 use crate::world;
 use bevy::prelude::*;
 
@@ -69,6 +70,18 @@ pub fn check_input(
                 window.cursor.grab_mode = CursorGrabMode::Confined;
                 window.cursor.visible = false;
             }
+        }
+    }
+
+    if buttons.just_pressed(MouseButton::Right) {
+        if let Some(selected_voxel) = selected.1 {
+            let chunk = world
+                .chunk_containing(selected_voxel)
+                .expect("Selected voxel is not in a chunk");
+            let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
+            let voxel = chunk_data.voxel_mut(selected_voxel.into());
+            voxel.kind = VoxelKind::Stone;
+            commands.entity(chunk).remove::<HasMesh>();
         }
     }
 

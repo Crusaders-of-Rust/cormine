@@ -6,9 +6,11 @@ use crate::voxel::VoxelPosition;
 use crate::world;
 
 #[derive(Resource, Default)]
-pub struct SelectedVoxel(pub Option<VoxelPosition>);
+//                       target voxel to break      target voxel to place
+pub struct SelectedVoxel(pub Option<VoxelPosition>, pub Option<VoxelPosition>);
 
-const SELECT_DISTANCE: usize = 32;
+const SELECT_DISTANCE: f32 = 32.0;
+const STEP_SIZE: f32 = 0.05;
 
 pub fn update_selected_voxel(
     world: Res<world::World>,
@@ -21,18 +23,32 @@ pub fn update_selected_voxel(
     let player_trans = player.get_single().expect("expected player object");
     let pos = player_trans.translation;
     let direction = player_trans.forward().as_vec3().normalize();
-    for step in 0..SELECT_DISTANCE {
+
+    let mut step: f32 = 0.0;
+    while step <= SELECT_DISTANCE {
         let check = (pos + direction * step as f32).as_ivec3();
         let check = VoxelPosition::new(check);
+        
         match world.voxel_at(check, &chunks) {
             Some(voxel) if voxel.should_mesh() => {
                 selected.0 = Some(check);
                 let mat = materials.get_mut(&material_handle.handle).unwrap();
                 mat.has_selected = 1;
                 mat.selected_voxel = check.as_vec3();
+
+                if step != 0.0 {
+                    let prev_step = (pos + direction * (step - STEP_SIZE) as f32).as_ivec3();
+                    selected.1 = Some(VoxelPosition::new(prev_step))
+                }
+                else {
+                    selected.1 = None;
+                }
+
                 return;
             }
-            _ => continue,
+            _ => {
+                step += STEP_SIZE;
+            },
         }
     }
     if selected.0.is_some() {
