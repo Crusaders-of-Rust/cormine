@@ -5,7 +5,7 @@ use crate::voxel::{VoxelKind, VoxelPosition};
 use crate::world;
 use bevy::prelude::*;
 
-use bevy::input::mouse::MouseMotion;
+use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 #[derive(Resource, Default)]
@@ -59,6 +59,7 @@ pub fn check_input(
     mut input_state: ResMut<InputState>,
     camera_transform: Query<&Transform, With<Camera>>,
     mut selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
+    mut scroll: EventReader<MouseWheel>,
 ) {
     let window = &mut qwindow.single_mut();
     let camera_transform = camera_transform.single();
@@ -200,16 +201,28 @@ pub fn check_input(
         }
     }
 
+    let mut new_selected = input_state.selected_voxel;
     if keys.just_pressed(KeyCode::Digit1) {
-        input_state.selected_voxel = 0;
+        new_selected = 0;
     } else if keys.just_pressed(KeyCode::Digit2) {
-        input_state.selected_voxel = 1;
+        new_selected = 1;
     } else if keys.just_pressed(KeyCode::Digit3) {
-        input_state.selected_voxel = 2;
+        new_selected = 2;
     } else if keys.just_pressed(KeyCode::Digit4) {
-        input_state.selected_voxel = 3;
+        new_selected = 3;
     } else if keys.just_pressed(KeyCode::Digit5) {
-        input_state.selected_voxel = 4;
+        new_selected = 4;
+    }
+    for scr_event in scroll.read() {
+        if scr_event.y > 0.0 {
+            new_selected = new_selected.saturating_add(1);
+        } else if scr_event.y < 0.0 {
+            new_selected = new_selected.saturating_sub(1);
+        }
+    }
+    new_selected = new_selected.clamp(0, 4);
+    if new_selected != input_state.selected_voxel {
+        input_state.selected_voxel = new_selected;
     }
 
     let mut selected_pos = selected_pos.single_mut();
