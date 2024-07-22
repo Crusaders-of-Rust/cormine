@@ -8,6 +8,10 @@ use bevy::prelude::*;
 
 const GRAVITY: f32 = 40.0;
 const JUMP_VELOCITY: f32 = 10.0;
+const FLY_SPEED_VERTICAL: f32 = 15.0;
+const WATER_ACCELERATION: f32 = 0.5;
+const MAX_SWIM_UP_SPEED: f32 = 4.0;
+const PLAYER_HEIGHT: i32 = 2;
 
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
@@ -32,7 +36,7 @@ pub fn player_move(
     vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
 
     let get_voxel = |player_pos: Vec3, offset: IVec3| -> Option<&Voxel> {
-        let check_pos = player_pos.as_ivec3() + offset + IVec3::new(0, -2, 0);
+        let check_pos = player_pos.as_ivec3() + offset + IVec3::new(0, -PLAYER_HEIGHT, 0);
         let voxel_pos = VoxelPosition::new(check_pos);
 
         let chunk_ent = world.chunk_containing(voxel_pos)?;
@@ -61,9 +65,9 @@ pub fn player_move(
 
     if input_state.fly_hack {
         vel.y = if input_state.space_held {
-            15.0
+            FLY_SPEED_VERTICAL
         } else if input_state.shift_held {
-            -15.0
+            -FLY_SPEED_VERTICAL
         } else {
             0.0
         };
@@ -72,18 +76,14 @@ pub fn player_move(
         if input_state.space_pressed && is_on_ground {
             vel.y = JUMP_VELOCITY;
         }
+        // Swim up, capping at a maximum speed
         if input_state.space_held && is_in_water {
-            vel.y += 0.5;
-        }
-
-        // cap vertical speed in water
-        if is_in_water {
-            vel.y = vel.y.clamp(-5.0, 2.0);
+            vel.y = (vel.y + WATER_ACCELERATION).clamp(-5.0, MAX_SWIM_UP_SPEED);
         }
     }
 
     let mut water_overlay = water_overlay.single_mut();
-    let is_head_in_wate = get_voxel(*pos, IVec3::new(0, 2, 0))
+    let is_head_in_wate = get_voxel(*pos, IVec3::new(0, PLAYER_HEIGHT, 0))
         .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
     if is_head_in_wate {
         water_overlay.1 .0 = Color::linear_rgba(0.0, 0.0, 0.5, 0.5);
