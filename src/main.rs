@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
+mod args;
 mod chunk;
 mod mesh;
 mod voxel;
@@ -23,8 +24,6 @@ mod input;
 mod ui;
 
 mod player;
-
-use argh::FromArgs;
 
 use bevy::ecs::system::SystemState;
 use bevy::ecs::world::CommandQueue;
@@ -50,34 +49,8 @@ use highlight::SelectedVoxel;
 use material::{VoxelMaterial, VoxelMaterialResource};
 use voxel::VoxelPosition;
 
-/// CoRmine.
-#[derive(FromArgs, Resource)]
-struct Arguments {
-    #[argh(subcommand)]
-    commands: ArgumentsCommands,
-}
-
-#[derive(FromArgs)]
-#[argh(subcommand)]
-enum ArgumentsCommands {
-    Generate(ArgumentsGenerate),
-}
-
-/// Generate a new world
-#[derive(FromArgs)]
-#[argh(subcommand, name = "generate")]
-struct ArgumentsGenerate {
-    /// seed to use for world generation
-    #[argh(option)]
-    seed: Option<u32>,
-
-    /// width and length of the world (in chunks)
-    #[argh(option)]
-    size: Option<usize>,
-}
-
 fn main() {
-    let args = argh::from_env::<Arguments>();
+    let args = argh::from_env::<args::Arguments>();
     let mut app = App::new();
     let mut default_plugins = DefaultPlugins.build();
     #[cfg(feature = "wireframe")]

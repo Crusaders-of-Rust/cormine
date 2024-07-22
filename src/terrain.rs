@@ -6,11 +6,10 @@ use noise::{
 use rand::{thread_rng, Rng};
 
 use crate::{
+    args::{Arguments, ArgumentsCommands},
     chunk::{Chunk, ChunkPosition, CHUNK_SIZE, MAX_HEIGHT},
-    voxel::LocalVoxelPosition,
-    ArgumentsCommands,
+    voxel::{LocalVoxelPosition, VoxelKind},
 };
-use crate::{voxel::VoxelKind, Arguments};
 
 fn generate_noise_map(width: usize, height: usize, seed: Option<u32>) -> NoiseMap {
     let seed = seed.unwrap_or_else(|| {
