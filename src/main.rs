@@ -24,6 +24,10 @@ mod ui;
 
 mod player;
 
+use bevy::ecs::system::SystemState;
+use bevy::ecs::world::CommandQueue;
+use bevy::tasks::futures_lite::future;
+use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use chunk::Chunk;
 use mesh::HasMesh;
 
@@ -92,7 +96,10 @@ fn main() {
         ),
     )
     .add_systems(Update, material::process_block_texture)
-    .add_systems(Update, (input::check_input, generate_chunk_meshes))
+    .add_systems(
+        Update,
+        (input::check_input, queue_chunk_meshes, handle_mesh_tasks),
+    )
     .add_systems(Update, highlight::update_selected_voxel);
 
     #[cfg(feature = "flycam")]
@@ -149,18 +156,19 @@ fn make_camera(mut commands: Commands) {
     }
 }
 
-/// Find any [`Chunk`]s which haven't yet had their meshes generated and add them.
-fn generate_chunk_meshes(
+#[derive(Component)]
+struct ChunkMeshingTask(Task<CommandQueue>);
+
+fn queue_chunk_meshes(
     mut commands: Commands,
-    query: Query<(Entity, &Chunk), Without<HasMesh>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    material: Res<VoxelMaterialResource>,
+    chunks: Query<(Entity, &Chunk), (Without<HasMesh>, Without<ChunkMeshingTask>)>,
     world: Res<world::World>,
-    chunks: Query<&Chunk>,
 ) {
-    for (ent, chunk) in query.iter() {
+    info_once!("Started queuing chunk tasks");
+    let task_pool = AsyncComputeTaskPool::get();
+    for (ent, chunk) in chunks.iter().map(|(e, c)| (e, c.clone())) {
         // get all adjacent chunks
-        let mut adj_chunks: Vec<&Chunk> = vec![];
+        let mut adj_chunks = Vec::with_capacity(4);
         let chunk_pos = chunk.position();
         for dx in -1..=1 {
             for dz in -1..=1 {
@@ -175,20 +183,43 @@ fn generate_chunk_meshes(
                 let Some(chunk_ent) = world.chunk_containing(pos) else {
                     continue;
                 };
-                let chunk = chunks.get(chunk_ent).expect("Chunk does not exist");
-                adj_chunks.push(chunk);
+                adj_chunks.push(chunk_ent);
             }
         }
+        let task = task_pool.spawn(async move {
+            let mut cmd_queue = CommandQueue::default();
+            cmd_queue.push(move |world: &mut World| {
+                let mut system_state = SystemState::<(
+                    Query<&mut Chunk>,
+                    ResMut<Assets<Mesh>>,
+                    Res<VoxelMaterialResource>,
+                )>::new(world);
+                let (chunk_query, mut meshes, material) = system_state.get_mut(world);
+                let mesh = mesh::from_chunk(ent, adj_chunks, chunk_query.to_readonly());
+                let mesh = meshes.add(mesh);
+                let material = material.handle.clone();
+                world
+                    .entity_mut(ent)
+                    .insert(MaterialMeshBundle {
+                        mesh,
+                        transform: Transform::from_translation(chunk.position().as_vec3()),
+                        material,
+                        ..default()
+                    })
+                    .insert(HasMesh)
+                    .remove::<ChunkMeshingTask>();
+            });
+            cmd_queue
+        });
+        commands.entity(ent).insert(ChunkMeshingTask(task));
+    }
+    info_once!("Finished queuing chunk tasks");
+}
 
-        let mesh = mesh::from_chunk(chunk, adj_chunks);
-        commands
-            .entity(ent)
-            .insert(MaterialMeshBundle {
-                mesh: meshes.add(mesh),
-                transform: Transform::from_translation(chunk.position().as_vec3()),
-                material: material.handle.clone(),
-                ..default()
-            })
-            .insert(HasMesh);
+fn handle_mesh_tasks(mut commands: Commands, mut tasks: Query<&mut ChunkMeshingTask>) {
+    for mut task in tasks.iter_mut() {
+        if let Some(mut cmd_queue) = block_on(future::poll_once(&mut task.0)) {
+            commands.append(&mut cmd_queue);
+        }
     }
 }

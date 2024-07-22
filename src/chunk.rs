@@ -46,7 +46,7 @@ impl From<VoxelPosition> for ChunkPosition {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Chunk {
     voxels: Array3<Voxel>,
     position: ChunkPosition,
