@@ -13,9 +13,11 @@ pub struct CameraVelocity {
     pub vel: Vec3,
 }
 #[derive(Resource, Default)]
-pub struct JumpState {
-    pub pressed: bool,
-    pub holding: bool,
+pub struct InputState {
+    pub space_pressed: bool,
+    pub space_held: bool,
+    pub shift_held: bool,
+    pub fly_hack: bool
 }
 
 pub fn hook_cursor(mut qwindow: Query<&mut Window, With<PrimaryWindow>>) {
@@ -53,7 +55,7 @@ pub fn check_input(
     world: Res<world::World>,
     mut chunks: Query<&mut Chunk>,
     mut camera_velocity: ResMut<CameraVelocity>,
-    mut jump_state: ResMut<JumpState>,
+    mut input_state: ResMut<InputState>,
     camera_transform: Query<&Transform, With<Camera>>,
 ) {
     let window = &mut qwindow.single_mut();
@@ -157,21 +159,31 @@ pub fn check_input(
             let camera_forward = camera_transform.forward().with_y(0.0);
             let camera_right = camera_transform.right().with_y(0.0);
 
-            jump_state.holding = false;
+            let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) { 12.5 } else { 7.5 };
+
+            input_state.space_held = keys.pressed(KeyCode::Space);
+            input_state.shift_held = keys.pressed(KeyCode::ShiftLeft);
+            input_state.space_pressed = keys.just_pressed(KeyCode::Space);
+
+            // TODO: make this cheat only?
+            if keys.just_pressed(KeyCode::KeyF) {
+                input_state.fly_hack = !input_state.fly_hack;
+            }
+            if input_state.fly_hack {
+                speed_factor *= 2.0;
+            }
+
             for key in keys.get_pressed() {
                 if *key == KeyCode::KeyW {
-                    *camera_velocity += 7.5 * camera_forward;
+                    *camera_velocity += speed_factor * camera_forward;
                 } else if *key == KeyCode::KeyS {
-                    *camera_velocity -= 7.5 * camera_forward;
+                    *camera_velocity -= speed_factor * camera_forward;
                 } else if *key == KeyCode::KeyA {
-                    *camera_velocity -= 7.5 * camera_right;
+                    *camera_velocity -= speed_factor * camera_right;
                 } else if *key == KeyCode::KeyD {
-                    *camera_velocity += 7.5 * camera_right;
-                } else if *key == KeyCode::Space {
-                    jump_state.holding = true;
+                    *camera_velocity += speed_factor * camera_right;
                 }
             }
-            jump_state.pressed = keys.just_pressed(KeyCode::Space);
         }
     }
 }

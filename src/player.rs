@@ -1,6 +1,6 @@
 use crate::{
     chunk::Chunk,
-    input::{CameraVelocity, JumpState},
+    input::{CameraVelocity, InputState},
     voxel::{Voxel, VoxelKind, VoxelPosition},
     world::World,
 };
@@ -15,12 +15,14 @@ pub fn player_move(
     time: Res<Time>,
     world: Res<World>,
     chunks: Query<&Chunk>,
-    jump_state: Res<JumpState>,
+    input_state: Res<InputState>,
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
 
-    vel.y -= GRAVITY * time.delta_seconds();
+    if !input_state.fly_hack {
+        vel.y -= GRAVITY * time.delta_seconds();
+    }
 
     *pos += *vel * time.delta_seconds();
 
@@ -56,17 +58,28 @@ pub fn player_move(
         pos.y = (pos.y + 0.1).floor();
     }
 
-    // allow jumping if on ground or in water
-    if jump_state.pressed && is_on_ground {
-        vel.y = JUMP_VELOCITY;
+    if input_state.fly_hack {
+        vel.y = if input_state.space_held {
+            15.0
+        } else if input_state.shift_held {
+            -15.0
+        } else {
+            0.0
+        };
     }
-    if jump_state.holding && is_in_water {
-        vel.y += 0.5;
-    }
+    else {
+        // allow jumping if on ground or in water
+        if input_state.space_pressed && is_on_ground {
+            vel.y = JUMP_VELOCITY;
+        }
+        if input_state.space_held && is_in_water {
+            vel.y += 0.5;
+        }
 
-    // cap vertical speed in water
-    if is_in_water {
-        vel.y = vel.y.clamp(-5.0, 2.0);
+        // cap vertical speed in water
+        if is_in_water {
+            vel.y = vel.y.clamp(-5.0, 2.0);
+        }
     }
 
     // Collision above head

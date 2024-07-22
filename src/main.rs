@@ -79,7 +79,7 @@ fn main() {
     app.init_resource::<world::World>();
     app.init_resource::<SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
-    app.init_resource::<input::JumpState>();
+    app.init_resource::<input::InputState>();
 
     #[cfg(feature = "wireframe")]
     {
