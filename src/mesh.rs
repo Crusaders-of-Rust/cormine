@@ -36,27 +36,26 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         vec3(0., 1., 1.),
     ];
 
-    /// The indices into [`VERTICES`] making up each face of the cube
-    const FACES: [[usize; 4]; 6] = [
-        [0, 1, 2, 3], // front
-        [5, 4, 7, 6], // back
-        [4, 0, 3, 7], // left
-        [1, 5, 6, 2], // right
-        [4, 5, 1, 0], // bottom
-        [3, 2, 6, 7], // top
+    /// The indices into [`VERTICES`] making up each face of the cube, as
+    /// well as the direction of the face
+    const FACES: [([usize; 4], IVec3); 6] = [
+        ([0, 1, 2, 3], IVec3::Z),     // front
+        ([5, 4, 7, 6], IVec3::NEG_Z), // back
+        ([4, 0, 3, 7], IVec3::NEG_X), // left
+        ([1, 5, 6, 2], IVec3::X),     // right
+        ([4, 5, 1, 0], IVec3::NEG_Y), // bottom
+        ([3, 2, 6, 7], IVec3::Y),     // top
     ];
+
+    fn get_adjacent_voxel(map: &HashMap<[i32; 3], Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
+        let pos = pos.add(dir);
+        let item = map.get(&pos.to_array());
+        *item.unwrap_or(&Voxel::AIR)
+    }
 
     /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a chunk boundary
     fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: Vec3) -> [Voxel; 6] {
         let pos = pos.as_ivec3();
-        fn get_adjacent_voxel(map: &HashMap<[i32; 3], Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
-            let pos = pos.add(dir);
-            let item = map.get(&pos.to_array());
-            if item.is_none() {
-                //println!("No voxel at {:?} {:#?}", pos, map.keys());
-            }
-            *item.unwrap_or(&Voxel::AIR)
-        }
         [
             get_adjacent_voxel(map, pos, IVec3::NEG_Z),
             get_adjacent_voxel(map, pos, IVec3::Z),
@@ -114,7 +113,93 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
 
         let voxel_size = Vec3::new(1.0, height, 1.0);
 
-        for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
+        // Calculate the 4 AO values for a face. See:
+        // https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
+        // https://playspacefarer.com/ambient-occlusion/
+        // FIXME: Some of the values in this are wrong, leading to the AO looking a bit wonky
+        fn ao_values_for_face(
+            map: &HashMap<[i32; 3], Voxel>,
+            pos: IVec3,
+            face_direction: IVec3,
+        ) -> [u32; 4] {
+            let offsets = match face_direction {
+                IVec3::NEG_X => [
+                    IVec3::new(-1, 0, 1),
+                    IVec3::new(-1, -1, 1),
+                    IVec3::new(-1, -1, 0),
+                    IVec3::new(-1, -1, -1),
+                    IVec3::new(-1, 0, -1),
+                    IVec3::new(-1, 1, -1),
+                    IVec3::new(-1, 1, 0),
+                    IVec3::new(-1, 1, 1),
+                ],
+                IVec3::X => [
+                    IVec3::new(1, 0, -1),
+                    IVec3::new(1, -1, -1),
+                    IVec3::new(1, -1, 0),
+                    IVec3::new(1, -1, 1),
+                    IVec3::new(1, 0, 1),
+                    IVec3::new(1, 1, 1),
+                    IVec3::new(1, 1, 0),
+                    IVec3::new(1, 1, -1),
+                ],
+                IVec3::NEG_Y => [
+                    IVec3::new(-1, -1, 0),
+                    IVec3::new(-1, -1, 1),
+                    IVec3::new(0, -1, 1),
+                    IVec3::new(1, -1, 1),
+                    IVec3::new(1, -1, 0),
+                    IVec3::new(1, -1, -1),
+                    IVec3::new(0, -1, -1),
+                    IVec3::new(-1, -1, -1),
+                ],
+                IVec3::Y => [
+                    IVec3::new(0, 1, 1),
+                    IVec3::new(-1, 1, 1),
+                    IVec3::new(-1, 1, 0),
+                    IVec3::new(-1, 1, -1),
+                    IVec3::new(0, 1, -1),
+                    IVec3::new(1, 1, -1),
+                    IVec3::new(1, 1, 0),
+                    IVec3::new(1, 1, 1),
+                ],
+                IVec3::NEG_Z => [
+                    IVec3::new(-1, 0, -1),
+                    IVec3::new(-1, -1, -1),
+                    IVec3::new(0, -1, -1),
+                    IVec3::new(1, -1, -1),
+                    IVec3::new(1, 0, -1),
+                    IVec3::new(1, 1, -1),
+                    IVec3::new(0, 1, -1),
+                    IVec3::new(-1, 1, -1),
+                ],
+                IVec3::Z => [
+                    IVec3::new(1, 0, 1),
+                    IVec3::new(1, -1, 1),
+                    IVec3::new(0, -1, 1),
+                    IVec3::new(-1, -1, 1),
+                    IVec3::new(-1, 0, 1),
+                    IVec3::new(-1, 1, 1),
+                    IVec3::new(0, 1, 1),
+                    IVec3::new(1, 1, 1),
+                ],
+                _ => unreachable!(),
+            };
+            let voxels = offsets.map(|off| get_adjacent_voxel(map, pos, off));
+            [[0, 1, 2], [2, 3, 4], [6, 7, 0], [4, 5, 6]]
+                .map(|[a, b, c]| [voxels[a], voxels[b], voxels[c]])
+                .map(|voxels| voxels.map(|v| v.transparent()))
+                .map(|[s1, corner, s2]| match (s1, corner, s2) {
+                    (true, _, true) => 0,
+                    (true, true, false) | (false, true, true) => 1,
+                    (false, false, false) => 3,
+                    _ => 2,
+                })
+        }
+
+        for (i, ((face_vertices, face_direction), adj)) in
+            FACES.into_iter().zip(adjacent.iter()).enumerate()
+        {
             let mut per_vertex_data = VertexData::new();
             per_vertex_data.set_normal_idx(i);
             per_vertex_data.set_material(material);
@@ -127,14 +212,16 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
                 continue;
             }
 
-            let verts = face.map(|f| (pos + VERTICES[f] * voxel_size).to_array());
+            let verts = face_vertices.map(|f| (pos + VERTICES[f] * voxel_size).to_array());
+            let ao_vals = ao_values_for_face(voxels, pos.as_ivec3(), face_direction);
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
-                // TODO: vertex_data should hold more than just the normal index
                 per_vertex_data.set_uv(idx);
+                let vertex = verts[idx];
+                per_vertex_data.set_neighbours(ao_vals[idx]);
+                vertices.push(vertex);
                 vertex_data.push(per_vertex_data.to_u32());
-                vertices.push(verts[idx]);
             }
         }
     }
@@ -143,7 +230,6 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         let pos = vec3(x as f32, y as f32, z as f32);
         add_cube(&voxels, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
-    // info!("Rendered {} tris", vertices.len() / 3);
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));
     mesh.insert_attribute(
@@ -154,6 +240,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     mesh
 }
 
+// TODO: use proper bitfields
 #[repr(transparent)]
 #[derive(Copy, Clone)]
 struct VertexData(u32);
@@ -176,6 +263,12 @@ impl VertexData {
         assert!(uv <= 3);
         self.0 &= !(0b11 << 6);
         self.0 |= (uv as u32) << 6;
+    }
+
+    pub fn set_neighbours(&mut self, neighbours: u32) {
+        assert!(neighbours <= 3);
+        self.0 &= !(0b11 << 8);
+        self.0 |= neighbours << 8;
     }
 
     pub fn to_u32(self) -> u32 {

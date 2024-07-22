@@ -39,14 +39,15 @@ struct VertexOut {
     @location(1) vertex_data: u32,
     @location(2) normal: vec3<f32>,
     @location(3) uv: vec2<f32>,
-
+    @location(4) ao_level: f32,
 }
 
 // vertex_data bitfield
 // N - Normal index
 // M - Material
 // U - UV index
-// XXXXXXXX XXXXXXXX XXXXXXXX XUUMMMNNN
+// O - Number of neighbours (for AO)
+// XXXXXXXX XXXXXXXX XXXXXXXO OUUMMMNNN
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOut {
@@ -60,6 +61,20 @@ fn vertex(vertex: Vertex) -> VertexOut {
     out.vertex_data = vertex.vertex_data;
     out.normal = VOXEL_NORMALS[normal_idx];
     out.uv = VOXEL_UVS[extractBits(vertex.vertex_data, 6u, 2u)];
+    switch extractBits(vertex.vertex_data, 8u, 2u) {
+        case 0u {
+            out.ao_level = 1.0;
+        }
+        case 1u {
+            out.ao_level = 0.5;
+        }
+        case 2u {
+            out.ao_level= 0.25;
+        }
+        default {
+            out.ao_level = 0.1;
+        }
+    }
     return out;
 }
 
@@ -82,6 +97,8 @@ fn fragment(
     let material_idx = extractBits(mesh.vertex_data, 3u, 3u);
     let material_color = textureSample(texture, texture_sampler, mesh.uv, material_idx);
     var out = material_color * (ambient_color + diff_color);
+
+    out *= mesh.ao_level;
     if bool(has_selected) && is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
         out *= 0.7;
     }
