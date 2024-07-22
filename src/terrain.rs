@@ -5,15 +5,18 @@ use noise::{
 };
 use rand::{thread_rng, Rng};
 
-use crate::voxel::VoxelKind;
 use crate::{
     chunk::{Chunk, ChunkPosition, CHUNK_SIZE, MAX_HEIGHT},
     voxel::LocalVoxelPosition,
+    ArgumentsCommands,
 };
+use crate::{voxel::VoxelKind, Arguments};
 
-fn generate_noise_map(width: usize, height: usize) -> NoiseMap {
-    let mut rng = thread_rng();
-    let seed: u32 = rng.gen();
+fn generate_noise_map(width: usize, height: usize, seed: Option<u32>) -> NoiseMap {
+    let seed = seed.unwrap_or_else(|| {
+        let mut rng = thread_rng();
+        rng.gen()
+    });
 
     let mut basic_multi = BasicMulti::<Perlin>::new(seed);
     basic_multi.octaves = 4;
@@ -43,14 +46,19 @@ pub fn ground_height_to_voxel(height: usize, is_top_level: bool) -> VoxelKind {
     }
 }
 
-pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::World>) {
-    let noise_map = generate_noise_map(1024, 1024);
+pub fn generate_chunks(
+    mut commands: Commands,
+    mut world: ResMut<crate::world::World>,
+    args: Res<Arguments>,
+) {
+    let ArgumentsCommands::Generate(options) = &args.commands;
+    let noise_map = generate_noise_map(1024, 1024, options.seed);
 
-    let chunk_count: i32 = 16;
+    let chunk_count = options.size.unwrap_or(16);
     for chunk_x in 0..chunk_count {
         for chunk_z in 0..chunk_count {
             let chunk_pos =
-                ChunkPosition::new(chunk_x * CHUNK_SIZE as i32, chunk_z * CHUNK_SIZE as i32);
+                ChunkPosition::new((chunk_x * CHUNK_SIZE) as i32, (chunk_z * CHUNK_SIZE) as i32);
             let mut chunk = Chunk::new().with_position(chunk_pos);
 
             for x in 0..CHUNK_SIZE {
