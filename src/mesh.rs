@@ -110,8 +110,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
                     if voxel_above.kind != VoxelKind::Water {
                         voxel_size.y = 0.9;
                     }
-                }
-                else {
+                } else {
                     voxel_size.y = 0.9;
                 }
             }

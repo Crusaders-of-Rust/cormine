@@ -16,6 +16,7 @@ pub fn player_move(
     world: Res<World>,
     chunks: Query<&Chunk>,
     input_state: Res<InputState>,
+    mut water_overlay: Query<(&mut crate::ui::WaterOverlay, &mut BackgroundColor)>,
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
@@ -79,6 +80,15 @@ pub fn player_move(
         if is_in_water {
             vel.y = vel.y.clamp(-5.0, 2.0);
         }
+    }
+
+    let mut water_overlay = water_overlay.single_mut();
+    let is_head_in_wate = get_voxel(*pos, IVec3::new(0, 2, 0))
+        .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
+    if is_head_in_wate {
+        water_overlay.1 .0 = Color::linear_rgba(0.0, 0.0, 0.5, 0.5);
+    } else {
+        water_overlay.1 .0 = Color::NONE;
     }
 
     // Collision above head

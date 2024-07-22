@@ -3,6 +3,9 @@ use bevy::prelude::*;
 #[derive(Component, Default)]
 pub struct SelectedPosition {}
 
+#[derive(Component, Default)]
+pub struct WaterOverlay {}
+
 pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     let crosshair_handle = asset_server.load("images/crosshair.png");
     commands
@@ -69,4 +72,19 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             });
         });
+
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Vw(100.0),
+                height: Val::Vh(100.0),
+                align_self: AlignSelf::FlexEnd,
+                justify_self: JustifySelf::Center,
+                ..Default::default()
+            },
+            background_color: BackgroundColor(Color::NONE),
+            ..Default::default()
+        },
+        WaterOverlay::default(),
+    ));
 }
