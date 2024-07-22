@@ -98,23 +98,21 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         pos: Vec3,
     ) {
         let adjacent = get_adjacent_voxels(voxels, pos);
-        let mut voxel_size = Vec3::new(1.0, 1.0, 1.0);
-
-        // if there is block above, set voxel_size y back to 1
-        // this stops water from being shorter if it is not on the surface
-        let mut voxel_pos = pos.as_ivec3().to_array();
-        if let Some(voxel) = voxels.get(&voxel_pos) {
-            if voxel.kind == VoxelKind::Water {
-                voxel_pos[1] += 1;
-                if let Some(voxel_above) = voxels.get(&voxel_pos) {
-                    if voxel_above.kind != VoxelKind::Water {
-                        voxel_size.y = 0.9;
-                    }
-                } else {
-                    voxel_size.y = 0.9;
+        #[cfg(feature = "short_blocks")]
+        let height = match material.height() {
+            1.0 => 1.0,
+            height => {
+                let above_pos = (pos.as_ivec3() + IVec3::Y).to_array();
+                match voxels.get(&above_pos) {
+                    Some(above) if above.kind() != material => height,
+                    _ => 1.0,
                 }
             }
-        }
+        };
+        #[cfg(not(feature = "short_blocks"))]
+        let height = 1.0;
+
+        let voxel_size = Vec3::new(1.0, height, 1.0);
 
         for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
             let mut per_vertex_data = VertexData::new();
