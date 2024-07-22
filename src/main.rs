@@ -51,6 +51,14 @@ use highlight::SelectedVoxel;
 use material::{VoxelMaterial, VoxelMaterialResource};
 use voxel::VoxelPosition;
 
+#[derive(Resource)]
+struct WorldSize {
+    width: usize,
+    #[allow(unused)]
+    // TODO: actually use the length arg
+    length: usize,
+}
+
 fn main() {
     let args = argh::from_env::<args::Arguments>();
     let mut app = App::new();
@@ -94,6 +102,10 @@ fn main() {
                 .insert_resource(load);
         }
     };
+    app.insert_resource(WorldSize {
+        width: args.width,
+        length: args.length,
+    });
 
     #[cfg(feature = "wireframe")]
     {

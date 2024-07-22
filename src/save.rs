@@ -10,8 +10,8 @@ use bevy::prelude::Query;
 use crate::{chunk::Chunk, voxel::Voxel, world::World};
 
 pub struct SaveData {
-    seed: u32,
-    voxels: Vec<(IVec3, Voxel)>,
+    pub seed: u32,
+    pub voxels: Vec<(IVec3, Voxel)>,
 }
 
 impl SaveData {
