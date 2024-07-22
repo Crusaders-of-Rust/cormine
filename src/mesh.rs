@@ -98,19 +98,38 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         pos: Vec3,
     ) {
         let adjacent = get_adjacent_voxels(voxels, pos);
-        let voxel_size = Vec3::new(1.0, material.height(), 1.0);
+        let mut voxel_size = Vec3::new(1.0, 1.0, 1.0);
+
+        // if there is block above, set voxel_size y back to 1
+        // this stops water from being shorter if it is not on the surface
+        let mut voxel_pos = pos.as_ivec3().to_array();
+        if let Some(voxel) = voxels.get(&voxel_pos) {
+            if voxel.kind == VoxelKind::Water {
+                voxel_pos[1] += 1;
+                if let Some(voxel_above) = voxels.get(&voxel_pos) {
+                    if voxel_above.kind != VoxelKind::Water {
+                        voxel_size.y = 0.9;
+                    }
+                }
+                else {
+                    voxel_size.y = 0.9;
+                }
+            }
+        }
+
         for (i, (face, adj)) in FACES.into_iter().zip(adjacent.iter()).enumerate() {
             let mut per_vertex_data = VertexData::new();
             per_vertex_data.set_normal_idx(i);
             per_vertex_data.set_material(material);
             // Don't render faces touching a solid voxel
-            if !adj.transparent() {
+            if !adj.transparent() && voxel_size.y == 1.0 {
                 continue;
             }
             // Don't render faces between multiple transparent blocks of the same type
             if adj.transparent() && adj.kind() == material {
                 continue;
             }
+
             let verts = face.map(|f| (pos + VERTICES[f] * voxel_size).to_array());
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
