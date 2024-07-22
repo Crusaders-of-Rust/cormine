@@ -17,7 +17,8 @@ pub struct InputState {
     pub space_pressed: bool,
     pub space_held: bool,
     pub shift_held: bool,
-    pub fly_hack: bool
+    pub fly_hack: bool,
+    pub selected_voxel: u8,
 }
 
 pub fn hook_cursor(mut qwindow: Query<&mut Window, With<PrimaryWindow>>) {
@@ -57,6 +58,7 @@ pub fn check_input(
     mut camera_velocity: ResMut<CameraVelocity>,
     mut input_state: ResMut<InputState>,
     camera_transform: Query<&Transform, With<Camera>>,
+    mut selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
 ) {
     let window = &mut qwindow.single_mut();
     let camera_transform = camera_transform.single();
@@ -115,7 +117,14 @@ pub fn check_input(
                 .expect("Selected voxel is not in a chunk");
             let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
             let voxel = chunk_data.voxel_mut(selected_voxel.into());
-            voxel.kind = VoxelKind::Stone;
+            voxel.kind = match input_state.selected_voxel {
+                0 => VoxelKind::Stone,
+                1 => VoxelKind::Grass,
+                2 => VoxelKind::Water,
+                3 => VoxelKind::Snow,
+                4 => VoxelKind::Dirt,
+                _ => panic!("Invalid selected voxel"),
+            };
 
             commands.entity(chunk).remove::<HasMesh>();
             // clear HasMesh flag from potential adjacent chunk
@@ -159,7 +168,11 @@ pub fn check_input(
             let camera_forward = camera_transform.forward().with_y(0.0);
             let camera_right = camera_transform.right().with_y(0.0);
 
-            let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) { 12.5 } else { 7.5 };
+            let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) {
+                12.5
+            } else {
+                7.5
+            };
 
             input_state.space_held = keys.pressed(KeyCode::Space);
             input_state.shift_held = keys.pressed(KeyCode::ShiftLeft);
@@ -186,4 +199,19 @@ pub fn check_input(
             }
         }
     }
+
+    if keys.just_pressed(KeyCode::Digit1) {
+        input_state.selected_voxel = 0;
+    } else if keys.just_pressed(KeyCode::Digit2) {
+        input_state.selected_voxel = 1;
+    } else if keys.just_pressed(KeyCode::Digit3) {
+        input_state.selected_voxel = 2;
+    } else if keys.just_pressed(KeyCode::Digit4) {
+        input_state.selected_voxel = 3;
+    } else if keys.just_pressed(KeyCode::Digit5) {
+        input_state.selected_voxel = 4;
+    }
+
+    let mut selected_pos = selected_pos.single_mut();
+    selected_pos.1.margin.left = Val::Px((input_state.selected_voxel as f32 - 2.0) * 156.0 + 8.0);
 }

@@ -66,8 +66,7 @@ pub fn player_move(
         } else {
             0.0
         };
-    }
-    else {
+    } else {
         // allow jumping if on ground or in water
         if input_state.space_pressed && is_on_ground {
             vel.y = JUMP_VELOCITY;
