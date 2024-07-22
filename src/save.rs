@@ -37,13 +37,13 @@ impl SaveData {
         let seed = reader.read_u32()?;
         let mut voxels = Vec::new();
         loop {
-            let Ok(x) = reader.read_i32() else {
+            let Ok(x) = reader.read_leb128_signed() else {
                 break;
             };
-            let y = reader.read_i32()?;
-            let z = reader.read_i32()?;
+            let y = reader.read_leb128_signed()?;
+            let z = reader.read_leb128_signed()?;
             let kind = reader.read_byte().and_then(TryInto::try_into)?;
-            voxels.push((IVec3::new(x, y, z), Voxel { kind }))
+            voxels.push((IVec3::new(x as _, y as _, z as _), Voxel { kind }))
         }
         Ok(Self { seed, voxels })
     }
@@ -82,9 +82,9 @@ impl SaveData {
     {
         writer.write_u32(self.seed)?;
         for (vox_pos, vox) in &self.voxels {
-            writer.write_i32(vox_pos.x)?;
-            writer.write_i32(vox_pos.y)?;
-            writer.write_i32(vox_pos.z)?;
+            writer.write_leb128_signed(vox_pos.x as _)?;
+            writer.write_leb128_signed(vox_pos.y as _)?;
+            writer.write_leb128_signed(vox_pos.z as _)?;
             writer.write_byte(vox.kind() as u8)?;
         }
         Ok(())
@@ -115,8 +115,8 @@ where
         Ok(u32::from_le_bytes(self.read_bytes()?))
     }
 
-    pub fn read_i32(&mut self) -> Result<i32> {
-        Ok(i32::from_le_bytes(self.read_bytes()?))
+    pub fn read_leb128_signed(&mut self) -> Result<i64> {
+        Ok(leb128::read::signed(&mut self.cursor)?)
     }
 }
 
@@ -139,7 +139,8 @@ where
         self.write_bytes(u32::to_le_bytes(val))
     }
 
-    pub fn write_i32(&mut self, val: i32) -> Result<()> {
-        self.write_bytes(i32::to_le_bytes(val))
+    pub fn write_leb128_signed(&mut self, value: i64) -> Result<()> {
+        leb128::write::signed(&mut self.cursor, value)?;
+        Ok(())
     }
 }
