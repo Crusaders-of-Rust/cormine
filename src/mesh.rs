@@ -17,8 +17,7 @@ pub struct HasMesh;
 pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
-pub fn from_chunk(chunk: Entity, adj_chunks: Vec<Entity>, chunks: Query<&Chunk>) -> Mesh {
-    let chunk = chunks.get(chunk).unwrap();
+pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     trace!("Generating chunk mesh @ {:?}", chunk.position());
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -80,7 +79,7 @@ pub fn from_chunk(chunk: Entity, adj_chunks: Vec<Entity>, chunks: Query<&Chunk>)
         })
         .collect();
 
-    for adj_chunk in adj_chunks.into_iter().map(|e| chunks.get(e).unwrap()) {
+    for adj_chunk in adj_chunks {
         for (adj_pos, adj_voxel) in adj_chunk.iter() {
             let new_pos = [
                 (adj_chunk.position().x() + adj_pos.0 as i32) - chunk.position().x(),

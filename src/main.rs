@@ -161,12 +161,13 @@ struct ChunkMeshingTask(Task<CommandQueue>);
 
 fn queue_chunk_meshes(
     mut commands: Commands,
-    chunks: Query<(Entity, &Chunk), (Without<HasMesh>, Without<ChunkMeshingTask>)>,
+    dirty_chunks: Query<(Entity, &Chunk), (Without<HasMesh>, Without<ChunkMeshingTask>)>,
+    all_chunks: Query<&Chunk>,
     world: Res<world::World>,
 ) {
     info_once!("Started queuing chunk tasks");
     let task_pool = AsyncComputeTaskPool::get();
-    for (ent, chunk) in chunks.iter().map(|(e, c)| (e, c.clone())) {
+    for (ent, chunk) in dirty_chunks.iter().map(|(e, c)| (e, c.clone())).take(32) {
         // get all adjacent chunks
         let mut adj_chunks = Vec::with_capacity(4);
         let chunk_pos = chunk.position();
@@ -180,22 +181,22 @@ fn queue_chunk_meshes(
                     y: 0,
                     z: chunk_pos.z() + dz * 16,
                 });
-                let Some(chunk_ent) = world.chunk_containing(pos) else {
+                let Some(chunk) = world
+                    .chunk_containing(pos)
+                    .and_then(|e| all_chunks.get(e).ok().cloned())
+                else {
                     continue;
                 };
-                adj_chunks.push(chunk_ent);
+                adj_chunks.push(chunk);
             }
         }
         let task = task_pool.spawn(async move {
+            let mesh = mesh::from_chunk(chunk.clone(), adj_chunks);
             let mut cmd_queue = CommandQueue::default();
             cmd_queue.push(move |world: &mut World| {
-                let mut system_state = SystemState::<(
-                    Query<&mut Chunk>,
-                    ResMut<Assets<Mesh>>,
-                    Res<VoxelMaterialResource>,
-                )>::new(world);
-                let (chunk_query, mut meshes, material) = system_state.get_mut(world);
-                let mesh = mesh::from_chunk(ent, adj_chunks, chunk_query.to_readonly());
+                let mut system_state =
+                    SystemState::<(ResMut<Assets<Mesh>>, Res<VoxelMaterialResource>)>::new(world);
+                let (mut meshes, material) = system_state.get_mut(world);
                 let mesh = meshes.add(mesh);
                 let material = material.handle.clone();
                 world
@@ -217,9 +218,14 @@ fn queue_chunk_meshes(
 }
 
 fn handle_mesh_tasks(mut commands: Commands, mut tasks: Query<&mut ChunkMeshingTask>) {
+    let mut completed = 0;
     for mut task in tasks.iter_mut() {
         if let Some(mut cmd_queue) = block_on(future::poll_once(&mut task.0)) {
+            completed += 1;
             commands.append(&mut cmd_queue);
         }
+    }
+    if completed > 0 {
+        debug!("Completed {completed} meshes this frame");
     }
 }
