@@ -47,6 +47,9 @@ pub fn player_look(
     }
 }
 
+#[derive(Event)]
+pub struct SaveEvent;
+
 pub fn check_input(
     mut qwindow: Query<&mut Window, With<PrimaryWindow>>,
     mut commands: Commands,
@@ -60,6 +63,7 @@ pub fn check_input(
     camera_transform: Query<&Transform, With<Camera>>,
     mut selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
     mut scroll: EventReader<MouseWheel>,
+    mut ev_save: EventWriter<SaveEvent>,
 ) {
     let window = &mut qwindow.single_mut();
     let camera_transform = camera_transform.single();
@@ -227,4 +231,8 @@ pub fn check_input(
 
     let mut selected_pos = selected_pos.single_mut();
     selected_pos.1.margin.left = Val::Px((input_state.selected_voxel as f32 - 2.0) * 156.0 + 8.0);
+
+    if keys.just_pressed(KeyCode::F9) {
+        ev_save.send(SaveEvent);
+    }
 }

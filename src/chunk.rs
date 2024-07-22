@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use crate::voxel::{LocalVoxelPosition, Voxel, VoxelPosition};
 
 use bevy::prelude::*;
@@ -46,6 +48,14 @@ impl From<VoxelPosition> for ChunkPosition {
     }
 }
 
+impl Add<LocalVoxelPosition> for ChunkPosition {
+    type Output = VoxelPosition;
+
+    fn add(self, rhs: LocalVoxelPosition) -> Self::Output {
+        VoxelPosition::new(self.as_ivec3() + rhs.as_ivec3())
+    }
+}
+
 #[derive(Component, Clone)]
 pub struct Chunk {
     voxels: Array3<Voxel>,
@@ -73,8 +83,21 @@ impl Chunk {
         &self.voxels
     }
 
+    /// Iterate over voxels, returning their local index as a tuple
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize, usize), &Voxel)> {
         self.voxels.indexed_iter()
+    }
+
+    /// Iterate over voxels, returning their index as a [`LocalVoxelPosition`]
+    pub fn iter_local_pos(&self) -> impl Iterator<Item = (LocalVoxelPosition, &Voxel)> {
+        self.iter()
+            .map(|((x, y, z), vox)| (LocalVoxelPosition::new(x as _, y as _, z as _), vox))
+    }
+
+    /// Iterate over voxels, returning their index as a [`VoxelPosition`]
+    pub fn iter_pos(&self) -> impl Iterator<Item = (VoxelPosition, &Voxel)> {
+        self.iter_local_pos()
+            .map(|(lp, vox)| (self.position + lp, vox))
     }
 
     pub fn voxel(&self, position: LocalVoxelPosition) -> &Voxel {

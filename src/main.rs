@@ -24,7 +24,9 @@ mod input;
 mod ui;
 
 mod player;
+mod save;
 
+use args::ArgumentsCommands;
 use bevy::ecs::system::SystemState;
 use bevy::ecs::world::CommandQueue;
 use bevy::tasks::futures_lite::future;
@@ -82,7 +84,16 @@ fn main() {
     app.init_resource::<SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
-    app.insert_resource(args);
+    match args.commands {
+        ArgumentsCommands::Generate(generate) => {
+            app.add_systems(Startup, terrain::generate_chunks)
+                .insert_resource(generate);
+        }
+        ArgumentsCommands::Load(load) => {
+            app.add_systems(Startup, terrain::load_chunks)
+                .insert_resource(load);
+        }
+    };
 
     #[cfg(feature = "wireframe")]
     {
@@ -91,17 +102,18 @@ fn main() {
 
     app.add_systems(
         Startup,
-        (
-            make_camera,
-            material::make_voxel_material,
-            terrain::generate_chunks,
-            ui::draw_ui,
-        ),
+        (make_camera, material::make_voxel_material, ui::draw_ui),
     )
     .add_systems(Update, material::process_block_texture)
+    .add_event::<input::SaveEvent>()
     .add_systems(
         Update,
-        (input::check_input, queue_chunk_meshes, handle_mesh_tasks),
+        (
+            input::check_input,
+            queue_chunk_meshes,
+            handle_mesh_tasks,
+            world::process_save_events,
+        ),
     )
     .add_systems(Update, highlight::update_selected_voxel);
 

@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use bevy::math::{IVec3, Vec3};
 
 use crate::chunk::{ChunkPosition, CHUNK_SIZE, MAX_HEIGHT};
@@ -21,6 +22,10 @@ impl VoxelPosition {
 
     pub fn z(&self) -> i32 {
         self.0.z
+    }
+
+    pub fn as_ivec3(&self) -> IVec3 {
+        IVec3::new(self.x(), self.y(), self.z())
     }
 
     pub fn as_vec3(&self) -> Vec3 {
@@ -61,6 +66,10 @@ impl LocalVoxelPosition {
 
     pub fn z(&self) -> u32 {
         self.z.into()
+    }
+
+    pub fn as_ivec3(&self) -> IVec3 {
+        IVec3::new(self.x as _, self.y as _, self.z as _)
     }
 }
 
@@ -144,6 +153,23 @@ pub enum VoxelKind {
     Water = 2,
     Snow = 3,
     Dirt = 4,
+}
+
+impl TryFrom<u8> for VoxelKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: u8) -> anyhow::Result<Self> {
+        use VoxelKind::*;
+        Ok(match value {
+            0 => Stone,
+            1 => Grass,
+            2 => Water,
+            3 => Snow,
+            4 => Dirt,
+            255 => Air,
+            x => return Err(anyhow!("invalid voxel kind `{x}`")),
+        })
+    }
 }
 
 impl VoxelKind {
