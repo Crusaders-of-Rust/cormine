@@ -44,9 +44,7 @@ pub struct LocalVoxelPosition {
 impl LocalVoxelPosition {
     pub fn new(x: u32, y: u32, z: u32) -> Self {
         debug_assert!(
-            matches!(x as _, 0..CHUNK_SIZE)
-                && matches!(y as _, 0..MAX_HEIGHT)
-                && matches!(z as _, 0..CHUNK_SIZE),
+            (x as usize) < CHUNK_SIZE && (y as usize) < MAX_HEIGHT && (z as usize) < CHUNK_SIZE,
             "({x}, {y}, {z}) is not within chunk ranges"
         );
         Self {
