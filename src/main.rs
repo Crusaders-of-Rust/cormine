@@ -213,6 +213,7 @@ fn queue_chunk_meshes(
     const BATCH_SIZE: usize = if cfg!(debug_assertions) { 64 } else { 256 };
     for (ent, chunk, sync) in dirty_chunks
         .iter()
+        .sort_unstable_by_key::<&Chunk, _>(|chunk| chunk.position().spawn_distance())
         .map(|(e, c, sync)| (e, c.clone(), sync.is_some()))
         .take(BATCH_SIZE)
     {

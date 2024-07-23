@@ -57,6 +57,10 @@ impl ChunkPosition {
         NeighbouringChunks { neg_x, x, neg_z, z }
     }
 
+    pub fn spawn_distance(&self) -> usize {
+        std::cmp::max(self.x().abs(), self.z().abs()) as usize
+    }
+
     pub fn in_range_of_spawn(&self, range: usize) -> bool {
         self.x() <= range as i32 && self.z() <= range as i32
     }
