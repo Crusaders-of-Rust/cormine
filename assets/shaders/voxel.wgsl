@@ -36,7 +36,7 @@ var<private> VOXEL_UVS: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
 struct VertexOut {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) position: vec3<f32>,
-    @location(1) vertex_data: u32,
+    @location(1) @interpolate(flat) vertex_data: u32,
     @location(2) normal: vec3<f32>,
     @location(3) uv: vec2<f32>,
     @location(4) ao_level: f32,
@@ -62,17 +62,18 @@ fn vertex(vertex: Vertex) -> VertexOut {
     out.normal = VOXEL_NORMALS[normal_idx];
     out.uv = VOXEL_UVS[extractBits(vertex.vertex_data, 6u, 2u)];
     switch extractBits(vertex.vertex_data, 8u, 2u) {
+        // Number of non-occluding neighbours of this vertex
         case 0u {
-            out.ao_level = 1.0;
+            out.ao_level = 0.1;
         }
         case 1u {
-            out.ao_level = 0.5;
+            out.ao_level = 0.25;
         }
         case 2u {
-            out.ao_level= 0.25;
+            out.ao_level= 0.5;
         }
         default {
-            out.ao_level = 0.1;
+            out.ao_level = 1.0;
         }
     }
     return out;
@@ -96,9 +97,14 @@ fn fragment(
     let ambient_color = light_color * AMBIENT_STRENGTH;
     let material_idx = extractBits(mesh.vertex_data, 3u, 3u);
     let material_color = textureSample(texture, texture_sampler, mesh.uv, material_idx);
-    var out = material_color * (ambient_color + diff_color);
 
+#ifdef AO_DEBUG
+    var out = vec4<f32>(mesh.ao_level);
+#else
+    var out = material_color * (ambient_color + diff_color);
     out *= mesh.ao_level;
+#endif
+
     if bool(has_selected) && is_between(mesh.position, selected_voxel, selected_voxel + vec3(1.0)) {
         out *= 0.7;
     }

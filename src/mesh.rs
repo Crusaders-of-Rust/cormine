@@ -115,6 +115,31 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
 
         let voxel_size = Vec3::new(1.0, height, 1.0);
 
+        fn face_neighbour_offsets(direction: IVec3) -> [IVec3; 8] {
+            let (perp1, perp2) = match direction {
+                IVec3::NEG_Z => (IVec3::Y, IVec3::X),
+                IVec3::Z => (IVec3::Y, IVec3::NEG_X),
+
+                IVec3::NEG_Y => (IVec3::X, IVec3::Z),
+                IVec3::Y => (IVec3::X, IVec3::NEG_Z),
+
+                IVec3::NEG_X => (IVec3::Y, IVec3::NEG_Z),
+                IVec3::X => (IVec3::Y, IVec3::Z),
+                _ => unreachable!(),
+            };
+
+            [
+                direction + perp1,
+                direction + perp1 + perp2,
+                direction + perp2,
+                direction - perp1 + perp2,
+                direction - perp1,
+                direction - perp1 - perp2,
+                direction - perp2,
+                direction + perp1 - perp2,
+            ]
+        }
+
         // Calculate the 4 AO values for a face. See:
         // https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
         // https://playspacefarer.com/ambient-occlusion/
@@ -124,73 +149,14 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             pos: IVec3,
             face_direction: IVec3,
         ) -> [u32; 4] {
-            let offsets = match face_direction {
-                IVec3::NEG_X => [
-                    IVec3::new(-1, 0, 1),
-                    IVec3::new(-1, -1, 1),
-                    IVec3::new(-1, -1, 0),
-                    IVec3::new(-1, -1, -1),
-                    IVec3::new(-1, 0, -1),
-                    IVec3::new(-1, 1, -1),
-                    IVec3::new(-1, 1, 0),
-                    IVec3::new(-1, 1, 1),
-                ],
-                IVec3::X => [
-                    IVec3::new(1, 0, -1),
-                    IVec3::new(1, -1, -1),
-                    IVec3::new(1, -1, 0),
-                    IVec3::new(1, -1, 1),
-                    IVec3::new(1, 0, 1),
-                    IVec3::new(1, 1, 1),
-                    IVec3::new(1, 1, 0),
-                    IVec3::new(1, 1, -1),
-                ],
-                IVec3::NEG_Y => [
-                    IVec3::new(-1, -1, 0),
-                    IVec3::new(-1, -1, 1),
-                    IVec3::new(0, -1, 1),
-                    IVec3::new(1, -1, 1),
-                    IVec3::new(1, -1, 0),
-                    IVec3::new(1, -1, -1),
-                    IVec3::new(0, -1, -1),
-                    IVec3::new(-1, -1, -1),
-                ],
-                IVec3::Y => [
-                    IVec3::new(0, 1, 1),
-                    IVec3::new(-1, 1, 1),
-                    IVec3::new(-1, 1, 0),
-                    IVec3::new(-1, 1, -1),
-                    IVec3::new(0, 1, -1),
-                    IVec3::new(1, 1, -1),
-                    IVec3::new(1, 1, 0),
-                    IVec3::new(1, 1, 1),
-                ],
-                IVec3::NEG_Z => [
-                    IVec3::new(-1, 0, -1),
-                    IVec3::new(-1, -1, -1),
-                    IVec3::new(0, -1, -1),
-                    IVec3::new(1, -1, -1),
-                    IVec3::new(1, 0, -1),
-                    IVec3::new(1, 1, -1),
-                    IVec3::new(0, 1, -1),
-                    IVec3::new(-1, 1, -1),
-                ],
-                IVec3::Z => [
-                    IVec3::new(1, 0, 1),
-                    IVec3::new(1, -1, 1),
-                    IVec3::new(0, -1, 1),
-                    IVec3::new(-1, -1, 1),
-                    IVec3::new(-1, 0, 1),
-                    IVec3::new(-1, 1, 1),
-                    IVec3::new(0, 1, 1),
-                    IVec3::new(1, 1, 1),
-                ],
-                _ => unreachable!(),
-            };
+            // Offsets to neighbouring voxels of a face - starting at the 'middle left'
+            // and continuing anti-clockwise
+
+            let offsets = face_neighbour_offsets(face_direction);
             let voxels = offsets.map(|off| get_adjacent_voxel(map, pos, off));
-            [[0, 1, 2], [2, 3, 4], [6, 7, 0], [4, 5, 6]]
+            [[2, 3, 4], [0, 1, 2], [6, 7, 0], [4, 5, 6]]
                 .map(|[a, b, c]| [voxels[a], voxels[b], voxels[c]])
-                .map(|voxels| voxels.map(|v| v.transparent()))
+                .map(|voxels| voxels.map(|v| v.casts_shadow()))
                 .map(|[s1, corner, s2]| match (s1, corner, s2) {
                     (true, _, true) => 0,
                     (true, true, false) | (false, true, true) => 1,

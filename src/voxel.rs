@@ -126,6 +126,10 @@ impl Voxel {
         self.kind().has_collision()
     }
 
+    pub fn casts_shadow(&self) -> bool {
+        self.kind().has_collision()
+    }
+
     #[cfg(feature = "short_blocks")]
     /// Return a value between 0.0 and 1.0 for the height of a voxel
     pub fn height(&self) -> f32 {
@@ -180,6 +184,10 @@ impl VoxelKind {
     }
 
     pub fn has_collision(&self) -> bool {
+        !matches!(self, VoxelKind::Air | VoxelKind::Water)
+    }
+
+    pub fn casts_shadow(&self) -> bool {
         !matches!(self, VoxelKind::Air | VoxelKind::Water)
     }
 
