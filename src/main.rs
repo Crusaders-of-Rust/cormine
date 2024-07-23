@@ -116,9 +116,17 @@ fn main() {
         Startup,
         (make_camera, material::make_voxel_material, ui::draw_ui),
     )
+    .add_systems(Update, material::process_block_texture)
     .add_systems(
         Update,
-        (material::process_block_texture, input::check_input),
+        (
+            input::handle_lmb,
+            input::handle_rmb,
+            input::handle_movement_keys,
+            input::handle_special_keys,
+            input::player_look,
+        )
+            .in_set(input::InputSet),
     )
     .add_event::<input::SaveEvent>()
     .add_systems(
@@ -133,12 +141,7 @@ fn main() {
 
     app.add_systems(Startup, input::hook_cursor);
     app.add_systems(Update, input::player_look);
-    app.add_systems(
-        Update,
-        player::player_move
-            .after(input::player_look)
-            .after(input::check_input),
-    );
+    app.add_systems(Update, player::player_move.after(input::InputSet));
 
     #[cfg(feature = "debug")]
     app.add_plugins(debug::DebugUiPlugins);

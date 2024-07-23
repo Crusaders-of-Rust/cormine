@@ -51,62 +51,19 @@ pub fn player_look(
 #[derive(Event)]
 pub struct SaveEvent;
 
-pub fn check_input(
+#[derive(SystemSet, PartialEq, Eq, Hash, Debug, Clone)]
+pub struct InputSet;
+
+pub fn handle_lmb(
     mut commands: Commands,
-    mut qwindow: Query<&mut Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    keys: Res<ButtonInput<KeyCode>>,
-    selected: ResMut<SelectedVoxel>,
+    selected: Res<SelectedVoxel>,
     world: Res<world::World>,
     mut chunks: Query<&mut Chunk>,
-    mut camera_velocity: ResMut<CameraVelocity>,
-    mut input_state: ResMut<InputState>,
-    camera_transform: Query<&Transform, With<Camera>>,
-    selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
-    mut scroll: EventReader<MouseWheel>,
-    mut ev_save: EventWriter<SaveEvent>,
-    color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
-    // FIXME: Hit system param limit. Split these into their own functions
-    (quit_counter, time, exit): (ResMut<QuitCounter>, Res<Time>, EventWriter<AppExit>),
 ) {
-    let window = &mut qwindow.single_mut();
-    let camera_transform = camera_transform.single();
-
-    if buttons.just_pressed(MouseButton::Left) {
-        handle_lmb(&mut commands, &selected, &world, &mut chunks);
+    if !buttons.just_pressed(MouseButton::Left) {
+        return;
     }
-
-    if buttons.just_pressed(MouseButton::Right) {
-        handle_rmb(&mut commands, &selected, &world, &mut chunks, &input_state);
-    }
-
-    handle_movement(
-        &keys,
-        &mut camera_velocity,
-        camera_transform,
-        &mut input_state,
-    );
-
-    handle_special_keys(
-        &keys,
-        window,
-        &mut input_state,
-        &mut scroll,
-        selected_pos,
-        &mut ev_save,
-        color_overlay,
-        quit_counter,
-        time,
-        exit,
-    );
-}
-
-fn handle_lmb(
-    commands: &mut Commands,
-    selected: &SelectedVoxel,
-    world: &world::World,
-    chunks: &mut Query<&mut Chunk>,
-) {
     if let Some(selected_voxel) = selected.to_break {
         let chunk = world
             .chunk_containing(selected_voxel)
@@ -160,13 +117,17 @@ fn handle_lmb(
     }
 }
 
-fn handle_rmb(
-    commands: &mut Commands,
-    selected: &SelectedVoxel,
-    world: &world::World,
-    chunks: &mut Query<&mut Chunk>,
-    input_state: &InputState,
+pub fn handle_rmb(
+    mut commands: Commands,
+    buttons: Res<ButtonInput<MouseButton>>,
+    selected: Res<SelectedVoxel>,
+    world: Res<world::World>,
+    mut chunks: Query<&mut Chunk>,
+    input_state: Res<InputState>,
 ) {
+    if !buttons.just_pressed(MouseButton::Right) {
+        return;
+    }
     if let Some(selected_voxel) = selected.to_place {
         let chunk = world
             .chunk_containing(selected_voxel)
@@ -227,12 +188,13 @@ fn handle_rmb(
     }
 }
 
-fn handle_movement(
-    keys: &ButtonInput<KeyCode>,
-    camera_velocity: &mut CameraVelocity,
-    camera_transform: &Transform,
-    input_state: &mut InputState,
+pub fn handle_movement_keys(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut camera_velocity: ResMut<CameraVelocity>,
+    camera_transform: Query<&Transform, With<Camera>>,
+    mut input_state: ResMut<InputState>,
 ) {
+    let camera_transform = camera_transform.single();
     let camera_velocity = &mut camera_velocity.vel;
     let camera_forward = camera_transform.forward().with_y(0.0);
     let camera_right = camera_transform.right().with_y(0.0);
@@ -274,18 +236,19 @@ const QUIT_SECONDS: f32 = 1.0;
 #[derive(Resource, Default)]
 pub struct QuitCounter(f32);
 
-fn handle_special_keys(
-    keys: &ButtonInput<KeyCode>,
-    window: &mut Window,
-    input_state: &mut InputState,
-    scroll: &mut EventReader<MouseWheel>,
+pub fn handle_special_keys(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut window: Query<&mut Window, With<PrimaryWindow>>,
+    mut input_state: ResMut<InputState>,
+    mut scroll: EventReader<MouseWheel>,
     mut selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
-    ev_save: &mut EventWriter<SaveEvent>,
+    mut ev_save: EventWriter<SaveEvent>,
     mut color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
     mut quit_counter: ResMut<QuitCounter>,
     time: Res<Time>,
     mut exit: EventWriter<AppExit>,
 ) {
+    let mut window = window.single_mut();
     if keys.just_pressed(KeyCode::Escape) {
         let (grab_mode, visible, color) = match window.cursor.grab_mode {
             CursorGrabMode::None => (CursorGrabMode::Locked, false, Color::NONE),
