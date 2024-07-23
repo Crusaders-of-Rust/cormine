@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
-#[derive(Component, Default)]
-pub struct SelectedPosition {}
+#[derive(Component)]
+pub struct SelectedPosition;
 
-#[derive(Component, Default)]
-pub struct WaterOverlay {}
+#[derive(Component)]
+pub struct WaterOverlay;
 
 pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
@@ -19,7 +19,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             background_color: BackgroundColor(Color::NONE),
             ..Default::default()
         },
-        WaterOverlay::default(),
+        WaterOverlay,
     ));
 
     let crosshair_handle = asset_server.load("images/crosshair.png");
@@ -79,7 +79,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 background_color: BackgroundColor(Color::NONE),
                 ..Default::default()
             },
-            SelectedPosition::default(),
+            SelectedPosition,
         ))
         .with_children(|parent| {
             parent.spawn(ImageBundle {
