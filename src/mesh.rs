@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Add;
 
-use bevy::math::vec3;
+use bevy::math::ivec3;
 use bevy::prelude::*;
 use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
@@ -27,15 +27,15 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     );
 
     /// The 8 vertices making up a cube
-    const VERTICES: [Vec3; 8] = [
-        vec3(0., 0., 0.),
-        vec3(1., 0., 0.),
-        vec3(1., 1., 0.),
-        vec3(0., 1., 0.),
-        vec3(0., 0., 1.),
-        vec3(1., 0., 1.),
-        vec3(1., 1., 1.),
-        vec3(0., 1., 1.),
+    const VERTICES: [IVec3; 8] = [
+        ivec3(0, 0, 0),
+        ivec3(1, 0, 0),
+        ivec3(1, 1, 0),
+        ivec3(0, 1, 0),
+        ivec3(0, 0, 1),
+        ivec3(1, 0, 1),
+        ivec3(1, 1, 1),
+        ivec3(0, 1, 1),
     ];
 
     /// The indices into [`VERTICES`] making up each face of the cube, as
@@ -56,8 +56,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     }
 
     /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a chunk boundary
-    fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: Vec3) -> [Voxel; 6] {
-        let pos = pos.as_ivec3();
+    fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: IVec3) -> [Voxel; 6] {
         [
             get_adjacent_voxel(map, pos, IVec3::NEG_Z),
             get_adjacent_voxel(map, pos, IVec3::Z),
@@ -96,25 +95,9 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         vertices: &mut Vec<[f32; 3]>,
         vertex_data: &mut Vec<u32>,
         material: VoxelKind,
-        pos: Vec3,
+        pos: IVec3,
     ) {
         let adjacent = get_adjacent_voxels(voxels, pos);
-        #[cfg(feature = "short_blocks")]
-        let height = match material.height() {
-            1.0 => 1.0,
-            height => {
-                let above_pos = (pos.as_ivec3() + IVec3::Y).to_array();
-                match voxels.get(&above_pos) {
-                    Some(above) if above.kind() != material => height,
-                    _ => 1.0,
-                }
-            }
-        };
-        #[cfg(not(feature = "short_blocks"))]
-        let height = 1.0;
-
-        let voxel_size = Vec3::new(1.0, height, 1.0);
-
         fn face_neighbour_offsets(direction: IVec3) -> [IVec3; 8] {
             let (perp1, perp2) = match direction {
                 IVec3::NEG_Z => (IVec3::Y, IVec3::X),
@@ -172,7 +155,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             per_vertex_data.set_normal_idx(i as u32);
             per_vertex_data.set_material(material);
             // Don't render faces touching a solid voxel
-            if !adj.transparent() && voxel_size.y == 1.0 {
+            if !adj.transparent() {
                 continue;
             }
             // Don't render faces between multiple transparent blocks of the same type
@@ -180,8 +163,8 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
                 continue;
             }
 
-            let verts = face_vertices.map(|f| (pos + VERTICES[f] * voxel_size).to_array());
-            let ao_vals = ao_values_for_face(voxels, pos.as_ivec3(), face_direction);
+            let verts = face_vertices.map(|f| (pos + VERTICES[f]).as_vec3().to_array());
+            let ao_vals = ao_values_for_face(voxels, pos, face_direction);
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
@@ -195,7 +178,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     }
 
     for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
-        let pos = vec3(x as f32, y as f32, z as f32);
+        let pos = ivec3(x as _, y as _, z as _);
         add_cube(&voxels, &mut vertices, &mut vertex_data, v.kind(), pos);
     }
 
