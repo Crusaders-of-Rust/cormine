@@ -1,14 +1,16 @@
-use crate::chunk::Chunk;
-use bevy::math::vec3;
 use std::collections::HashMap;
 use std::ops::Add;
 
-use crate::voxel::{Voxel, VoxelKind};
+use bevy::math::vec3;
 use bevy::prelude::*;
 use bevy::render::mesh::VertexAttributeValues::Float32x3;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::VertexFormat;
+use bit_field::BitField;
+
+use crate::chunk::Chunk;
+use crate::voxel::{Voxel, VoxelKind};
 
 #[derive(Component)]
 /// Marker component indicating a mesh is present and up to date
@@ -201,7 +203,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             FACES.into_iter().zip(adjacent.iter()).enumerate()
         {
             let mut per_vertex_data = VertexData::new();
-            per_vertex_data.set_normal_idx(i);
+            per_vertex_data.set_normal_idx(i as u32);
             per_vertex_data.set_material(material);
             // Don't render faces touching a solid voxel
             if !adj.transparent() && voxel_size.y == 1.0 {
@@ -217,7 +219,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
             for idx in [2, 1, 0, 3, 2, 0] {
-                per_vertex_data.set_uv(idx);
+                per_vertex_data.set_uv(idx as u32);
                 let vertex = verts[idx];
                 per_vertex_data.set_neighbours(ao_vals[idx]);
                 vertices.push(vertex);
@@ -250,25 +252,21 @@ impl VertexData {
         Self(0)
     }
 
-    pub fn set_normal_idx(&mut self, idx: usize) {
+    pub fn set_normal_idx(&mut self, idx: u32) {
         assert!(idx <= 5);
-        self.0 |= idx as u32;
+        self.0.set_bits(0..3, idx);
     }
 
     pub fn set_material(&mut self, kind: VoxelKind) {
-        self.0 |= (kind as u32) << 3;
+        self.0.set_bits(3..6, kind as u32);
     }
 
-    pub fn set_uv(&mut self, uv: usize) {
-        assert!(uv <= 3);
-        self.0 &= !(0b11 << 6);
-        self.0 |= (uv as u32) << 6;
+    pub fn set_uv(&mut self, uv: u32) {
+        self.0.set_bits(6..8, uv);
     }
 
     pub fn set_neighbours(&mut self, neighbours: u32) {
-        assert!(neighbours <= 3);
-        self.0 &= !(0b11 << 8);
-        self.0 |= neighbours << 8;
+        self.0.set_bits(8..10, neighbours);
     }
 
     pub fn to_u32(self) -> u32 {
