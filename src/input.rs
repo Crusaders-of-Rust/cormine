@@ -121,12 +121,9 @@ pub fn check_input(
             }
         }
 
-        #[cfg(not(feature = "flycam"))]
-        {
-            if window.cursor.grab_mode == CursorGrabMode::None {
-                window.cursor.grab_mode = CursorGrabMode::Confined;
-                window.cursor.visible = false;
-            }
+        if window.cursor.grab_mode == CursorGrabMode::None {
+            window.cursor.grab_mode = CursorGrabMode::Confined;
+            window.cursor.visible = false;
         }
     }
 
@@ -191,46 +188,43 @@ pub fn check_input(
         }
     }
 
-    #[cfg(not(feature = "flycam"))]
-    {
-        if window.cursor.grab_mode == CursorGrabMode::Confined {
-            if keys.just_pressed(KeyCode::Escape) {
-                window.cursor.grab_mode = CursorGrabMode::None;
-                window.cursor.visible = true;
-            }
+    if window.cursor.grab_mode == CursorGrabMode::Confined {
+        if keys.just_pressed(KeyCode::Escape) {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
+        }
 
-            let camera_velocity = &mut camera_velocity.vel;
-            let camera_forward = camera_transform.forward().with_y(0.0);
-            let camera_right = camera_transform.right().with_y(0.0);
+        let camera_velocity = &mut camera_velocity.vel;
+        let camera_forward = camera_transform.forward().with_y(0.0);
+        let camera_right = camera_transform.right().with_y(0.0);
 
-            let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) {
-                12.5
-            } else {
-                7.5
-            };
+        let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) {
+            12.5
+        } else {
+            7.5
+        };
 
-            input_state.space_held = keys.pressed(KeyCode::Space);
-            input_state.shift_held = keys.pressed(KeyCode::ShiftLeft);
-            input_state.space_pressed = keys.just_pressed(KeyCode::Space);
+        input_state.space_held = keys.pressed(KeyCode::Space);
+        input_state.shift_held = keys.pressed(KeyCode::ShiftLeft);
+        input_state.space_pressed = keys.just_pressed(KeyCode::Space);
 
-            // TODO: make this cheat only?
-            if keys.just_pressed(KeyCode::KeyF) {
-                input_state.fly_hack = !input_state.fly_hack;
-            }
-            if input_state.fly_hack {
-                speed_factor *= 2.0;
-            }
+        // TODO: make this cheat only?
+        if keys.just_pressed(KeyCode::KeyF) {
+            input_state.fly_hack = !input_state.fly_hack;
+        }
+        if input_state.fly_hack {
+            speed_factor *= 2.0;
+        }
 
-            for key in keys.get_pressed() {
-                if *key == KeyCode::KeyW {
-                    *camera_velocity += speed_factor * camera_forward;
-                } else if *key == KeyCode::KeyS {
-                    *camera_velocity -= speed_factor * camera_forward;
-                } else if *key == KeyCode::KeyA {
-                    *camera_velocity -= speed_factor * camera_right;
-                } else if *key == KeyCode::KeyD {
-                    *camera_velocity += speed_factor * camera_right;
-                }
+        for key in keys.get_pressed() {
+            if *key == KeyCode::KeyW {
+                *camera_velocity += speed_factor * camera_forward;
+            } else if *key == KeyCode::KeyS {
+                *camera_velocity -= speed_factor * camera_forward;
+            } else if *key == KeyCode::KeyA {
+                *camera_velocity -= speed_factor * camera_right;
+            } else if *key == KeyCode::KeyD {
+                *camera_velocity += speed_factor * camera_right;
             }
         }
     }

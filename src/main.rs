@@ -44,8 +44,6 @@ use bevy::render::{
     settings::{RenderCreation, WgpuFeatures, WgpuSettings},
     RenderPlugin,
 };
-#[cfg(feature = "flycam")]
-use bevy_flycam::prelude::*;
 
 use highlight::SelectedVoxel;
 use material::{VoxelMaterial, VoxelMaterialResource};
@@ -131,20 +129,14 @@ fn main() {
     )
     .add_systems(Update, highlight::update_selected_voxel);
 
-    #[cfg(feature = "flycam")]
-    app.add_plugins(NoCameraPlayerPlugin);
-
-    #[cfg(not(feature = "flycam"))]
-    {
-        app.add_systems(Startup, input::hook_cursor);
-        app.add_systems(Update, input::player_look);
-        app.add_systems(
-            Update,
-            player::player_move
-                .after(input::player_look)
-                .after(input::check_input),
-        );
-    }
+    app.add_systems(Startup, input::hook_cursor);
+    app.add_systems(Update, input::player_look);
+    app.add_systems(
+        Update,
+        player::player_move
+            .after(input::player_look)
+            .after(input::check_input),
+    );
 
     #[cfg(feature = "debug")]
     app.add_plugins(debug::DebugUiPlugins);
@@ -172,17 +164,7 @@ fn make_camera(mut commands: Commands) {
         },
         ..default()
     };
-
-    #[cfg(feature = "flycam")]
-    {
-        let mut ent = commands.spawn(bundle);
-        ent.insert(FlyCam);
-    }
-
-    #[cfg(not(feature = "flycam"))]
-    {
-        commands.spawn(bundle);
-    }
+    commands.spawn(bundle);
 }
 
 #[derive(Component)]
