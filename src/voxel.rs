@@ -42,7 +42,7 @@ impl VoxelPosition {
 
     // Calculate the 4 possible chunks neighbouring this one
     pub fn neighbouring_chunks(&self) -> NeighbouringChunks {
-        let this_chunk: ChunkPosition = (*self).into();
+        let this_chunk: &ChunkPosition = &(*self).into();
         let neg_x =
             (self.x() % CHUNK_SIZE_I == 0).then(|| this_chunk + IVec3::NEG_X * CHUNK_SIZE_I);
 
@@ -59,6 +59,7 @@ impl VoxelPosition {
     }
 }
 
+/// The four chunks that may border a given voxel if it lies on a boundary
 pub struct NeighbouringChunks {
     pub neg_x: Option<ChunkPosition>,
     pub x: Option<ChunkPosition>,

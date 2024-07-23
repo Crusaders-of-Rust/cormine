@@ -20,7 +20,7 @@ pub const CHUNK_SIZE_I: i32 = CHUNK_SIZE as i32;
 pub const MAX_HEIGHT: usize = 256;
 const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, MAX_HEIGHT, CHUNK_SIZE);
 
-/// X and Z positions of a chunk. Will always be multiples of 16
+/// X and Z positions of a chunk. Will always be multiples of [`CHUNK_SIZE`]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ChunkPosition(IVec2);
 
@@ -46,6 +46,16 @@ impl ChunkPosition {
     pub fn as_ivec3(&self) -> IVec3 {
         IVec3::new(self.x() as _, 0, self.z() as _)
     }
+
+    // Calculate the 4 possible chunks neighbouring this one
+    pub fn neighbouring_chunks(&self) -> NeighbouringChunks {
+        let neg_x = self + IVec3::NEG_X * CHUNK_SIZE_I;
+        let x = self + IVec3::X * CHUNK_SIZE_I;
+        let neg_z = self + IVec3::NEG_Z * CHUNK_SIZE_I;
+        let z = self + IVec3::Z * CHUNK_SIZE_I;
+
+        NeighbouringChunks { neg_x, x, neg_z, z }
+    }
 }
 
 impl From<VoxelPosition> for ChunkPosition {
@@ -59,7 +69,7 @@ impl From<VoxelPosition> for ChunkPosition {
     }
 }
 
-impl Add<LocalVoxelPosition> for ChunkPosition {
+impl Add<LocalVoxelPosition> for &ChunkPosition {
     type Output = VoxelPosition;
 
     fn add(self, rhs: LocalVoxelPosition) -> Self::Output {
@@ -67,12 +77,26 @@ impl Add<LocalVoxelPosition> for ChunkPosition {
     }
 }
 
-impl Add<IVec3> for ChunkPosition {
+impl Add<IVec3> for &ChunkPosition {
     type Output = ChunkPosition;
 
     fn add(self, rhs: IVec3) -> Self::Output {
         let pos = self.as_ivec3() + rhs;
         ChunkPosition::new(pos.x, pos.z)
+    }
+}
+
+/// The 4 chunks bordering a given chunk
+pub struct NeighbouringChunks {
+    pub neg_x: ChunkPosition,
+    pub x: ChunkPosition,
+    pub neg_z: ChunkPosition,
+    pub z: ChunkPosition,
+}
+
+impl NeighbouringChunks {
+    pub fn all(&self) -> [ChunkPosition; 4] {
+        [self.neg_x, self.x, self.neg_z, self.z]
     }
 }
 
@@ -117,7 +141,7 @@ impl Chunk {
     /// Iterate over voxels, returning their index as a [`VoxelPosition`]
     pub fn iter_pos(&self) -> impl Iterator<Item = (VoxelPosition, &Voxel)> {
         self.iter_local_pos()
-            .map(|(lp, vox)| (self.position + lp, vox))
+            .map(|(lp, vox)| (&self.position + lp, vox))
     }
 
     pub fn voxel(&self, position: LocalVoxelPosition) -> &Voxel {

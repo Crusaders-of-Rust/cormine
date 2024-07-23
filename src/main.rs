@@ -40,7 +40,11 @@ use bevy::{
         Task,
     },
 };
-use chunk::Chunk;
+use chunk::{
+    Chunk,
+    ChunkPosition,
+    CHUNK_SIZE_I,
+};
 use mesh::HasMesh;
 
 use bevy::{
@@ -68,7 +72,6 @@ use material::{
     VoxelMaterial,
     VoxelMaterialResource,
 };
-use voxel::VoxelPosition;
 
 #[derive(Resource)]
 struct WorldSize {
@@ -221,24 +224,14 @@ fn queue_chunk_meshes(
         // get all adjacent chunks
         let mut adj_chunks = Vec::with_capacity(4);
         let chunk_pos = chunk.position();
-        for dx in -1..=1 {
-            for dz in -1..=1 {
-                if dx == 0 && dz == 0 {
-                    continue;
-                }
-                let pos = VoxelPosition::new(IVec3 {
-                    x: chunk_pos.x() + dx * 16,
-                    y: 0,
-                    z: chunk_pos.z() + dz * 16,
-                });
-                let Some(chunk) = world
-                    .chunk_containing(pos)
-                    .and_then(|e| all_chunks.get(e).ok().cloned())
-                else {
-                    continue;
-                };
-                adj_chunks.push(chunk);
-            }
+        for chunk_pos in chunk_pos.neighbouring_chunks().all() {
+            let Some(chunk) = world
+                .chunk_at(chunk_pos)
+                .and_then(|e| all_chunks.get(e).ok().cloned())
+            else {
+                continue;
+            };
+            adj_chunks.push(chunk);
         }
 
         let task = async move {
