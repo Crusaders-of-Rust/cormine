@@ -56,6 +56,10 @@ impl ChunkPosition {
 
         NeighbouringChunks { neg_x, x, neg_z, z }
     }
+
+    pub fn in_range_of_spawn(&self, range: usize) -> bool {
+        self.x() <= range as i32 && self.z() <= range as i32
+    }
 }
 
 impl From<VoxelPosition> for ChunkPosition {

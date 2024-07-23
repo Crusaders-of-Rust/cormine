@@ -40,11 +40,7 @@ use bevy::{
         Task,
     },
 };
-use chunk::{
-    Chunk,
-    ChunkPosition,
-    CHUNK_SIZE_I,
-};
+use chunk::Chunk;
 use mesh::HasMesh;
 
 use bevy::{
@@ -216,10 +212,11 @@ fn queue_chunk_meshes(
     info_once!("Started queuing chunk tasks");
     let task_pool = AsyncComputeTaskPool::get();
     let sync_task_pool = ComputeTaskPool::get();
+    const BATCH_SIZE: usize = if cfg!(debug_assertions) { 64 } else { 256 };
     for (ent, chunk, sync) in dirty_chunks
         .iter()
         .map(|(e, c, sync)| (e, c.clone(), sync.is_some()))
-        .take(32)
+        .take(BATCH_SIZE)
     {
         // get all adjacent chunks
         let mut adj_chunks = Vec::with_capacity(4);
@@ -257,7 +254,7 @@ fn queue_chunk_meshes(
             cmd_queue
         };
 
-        let task = if sync {
+        let task = if sync || chunk_pos.in_range_of_spawn(2) {
             sync_task_pool.spawn(task)
         } else {
             task_pool.spawn(task)

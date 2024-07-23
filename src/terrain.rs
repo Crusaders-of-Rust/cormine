@@ -91,7 +91,7 @@ pub fn generate_chunks(
                 for y in 0..MAX_HEIGHT {
                     for z in 0..CHUNK_SIZE {
                         let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                        let global_pos = chunk_pos + local_pos;
+                        let global_pos = &chunk_pos + local_pos;
                         chunk.voxel_mut(local_pos).kind = block_at_position(global_pos, &noise_map);
                     }
                 }
@@ -154,7 +154,7 @@ pub fn load_chunks(
                 for y in 0..MAX_HEIGHT {
                     for z in 0..CHUNK_SIZE {
                         let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                        let global_pos = chunk_pos + local_pos;
+                        let global_pos = &chunk_pos + local_pos;
                         let voxel_kind = if let Some(change) = changes.get(&global_pos.as_ivec3()) {
                             change.kind
                         } else {
