@@ -1,8 +1,15 @@
 use crate::{
     chunk::Chunk,
-    input::{CameraVelocity, InputState},
+    input::{
+        CameraVelocity,
+        InputState,
+    },
     ui,
-    voxel::{Voxel, VoxelKind, VoxelPosition},
+    voxel::{
+        Voxel,
+        VoxelKind,
+        VoxelPosition,
+    },
     world::World,
 };
 use bevy::prelude::*;

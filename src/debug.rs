@@ -1,11 +1,23 @@
-use bevy::diagnostic::{
-    DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
+use bevy::{
+    diagnostic::{
+        DiagnosticsStore,
+        EntityCountDiagnosticsPlugin,
+        FrameTimeDiagnosticsPlugin,
+    },
+    input::{
+        keyboard::KeyboardInput,
+        ButtonState,
+    },
+    pbr::wireframe::WireframeConfig,
+    prelude::*,
 };
-use bevy::input::{keyboard::KeyboardInput, ButtonState};
-use bevy::pbr::wireframe::WireframeConfig;
-use bevy::prelude::*;
 
-use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSet};
+use bevy_egui::{
+    egui,
+    EguiContexts,
+    EguiPlugin,
+    EguiSet,
+};
 
 #[derive(Default, Resource)]
 struct DebugUiState {

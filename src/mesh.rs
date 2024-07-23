@@ -1,16 +1,31 @@
-use std::collections::HashMap;
-use std::ops::Add;
+use std::{
+    collections::HashMap,
+    ops::Add,
+};
 
-use bevy::math::ivec3;
-use bevy::prelude::*;
-use bevy::render::mesh::VertexAttributeValues::Float32x3;
-use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology, VertexAttributeValues};
-use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::render_resource::VertexFormat;
+use bevy::{
+    math::ivec3,
+    prelude::*,
+    render::{
+        mesh::{
+            MeshVertexAttribute,
+            PrimitiveTopology,
+            VertexAttributeValues,
+            VertexAttributeValues::Float32x3,
+        },
+        render_asset::RenderAssetUsages,
+        render_resource::VertexFormat,
+    },
+};
 use bit_field::BitField;
 
-use crate::chunk::Chunk;
-use crate::voxel::{Voxel, VoxelKind};
+use crate::{
+    chunk::Chunk,
+    voxel::{
+        Voxel,
+        VoxelKind,
+    },
+};
 
 #[derive(Component)]
 /// Marker component indicating a mesh is present and up to date
@@ -55,7 +70,8 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         *item.unwrap_or(&Voxel::AIR)
     }
 
-    /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a chunk boundary
+    /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a
+    /// chunk boundary
     fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: IVec3) -> [Voxel; 6] {
         [
             get_adjacent_voxel(map, pos, IVec3::NEG_Z),
@@ -126,7 +142,8 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         // Calculate the 4 AO values for a face. See:
         // https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
         // https://playspacefarer.com/ambient-occlusion/
-        // FIXME: Some of the values in this are wrong, leading to the AO looking a bit wonky
+        // FIXME: Some of the values in this are wrong, leading to the AO looking a bit
+        // wonky
         fn ao_values_for_face(
             map: &HashMap<[i32; 3], Voxel>,
             pos: IVec3,
@@ -176,8 +193,9 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
                 indices[5] = 1;
             }
 
-            // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
-            // However, it should use less if we were to share vertices across the whole chunk
+            // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and
+            // no indexes However, it should use less if we were to share
+            // vertices across the whole chunk
             for idx in indices {
                 per_vertex_data.set_uv(idx as u32);
                 let vertex = verts[idx];

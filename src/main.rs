@@ -27,26 +27,47 @@ mod player;
 mod save;
 
 use args::ArgumentsCommands;
-use bevy::ecs::system::SystemState;
-use bevy::ecs::world::CommandQueue;
-use bevy::tasks::futures_lite::future;
-use bevy::tasks::{block_on, AsyncComputeTaskPool, ComputeTaskPool, Task};
+use bevy::{
+    ecs::{
+        system::SystemState,
+        world::CommandQueue,
+    },
+    tasks::{
+        block_on,
+        futures_lite::future,
+        AsyncComputeTaskPool,
+        ComputeTaskPool,
+        Task,
+    },
+};
 use chunk::Chunk;
 use mesh::HasMesh;
 
-use bevy::color::palettes::css::WHITE;
-use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use bevy::prelude::*;
-use bevy::window::PresentMode;
+use bevy::{
+    color::palettes::css::WHITE,
+    pbr::wireframe::{
+        WireframeConfig,
+        WireframePlugin,
+    },
+    prelude::*,
+    window::PresentMode,
+};
 
 #[cfg(feature = "wireframe")]
 use bevy::render::{
-    settings::{RenderCreation, WgpuFeatures, WgpuSettings},
+    settings::{
+        RenderCreation,
+        WgpuFeatures,
+        WgpuSettings,
+    },
     RenderPlugin,
 };
 
 use highlight::SelectedVoxel;
-use material::{VoxelMaterial, VoxelMaterialResource};
+use material::{
+    VoxelMaterial,
+    VoxelMaterialResource,
+};
 use voxel::VoxelPosition;
 
 #[derive(Resource)]
@@ -175,7 +196,8 @@ fn make_camera(mut commands: Commands) {
 #[derive(Component)]
 struct ChunkMeshingTask(Task<CommandQueue>);
 
-/// Marker component for chunks indicating they should be updated synchronously (before the next frame)
+/// Marker component for chunks indicating they should be updated synchronously
+/// (before the next frame)
 #[derive(Component)]
 struct UpdateSync;
 

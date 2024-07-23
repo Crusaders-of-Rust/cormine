@@ -1,13 +1,23 @@
 use std::{
-    io::{Read, Seek, Write},
+    io::{
+        Read,
+        Seek,
+        Write,
+    },
     path::Path,
 };
 
 use anyhow::Result;
-use bevy::math::IVec3;
-use bevy::prelude::Query;
+use bevy::{
+    math::IVec3,
+    prelude::Query,
+};
 
-use crate::{chunk::Chunk, voxel::Voxel, world::World};
+use crate::{
+    chunk::Chunk,
+    voxel::Voxel,
+    world::World,
+};
 
 pub struct SaveData {
     pub seed: u32,

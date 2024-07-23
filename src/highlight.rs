@@ -1,9 +1,14 @@
 use bevy::prelude::*;
 
-use crate::chunk::Chunk;
-use crate::material::{VoxelMaterial, VoxelMaterialResource};
-use crate::voxel::VoxelPosition;
-use crate::world;
+use crate::{
+    chunk::Chunk,
+    material::{
+        VoxelMaterial,
+        VoxelMaterialResource,
+    },
+    voxel::VoxelPosition,
+    world,
+};
 
 #[derive(Resource, Default)]
 pub struct SelectedVoxel {

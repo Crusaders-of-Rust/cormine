@@ -1,17 +1,41 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+};
 
 use bevy::prelude::*;
 use noise::{
-    utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder},
-    BasicMulti, Perlin, ScalePoint,
+    utils::{
+        NoiseMap,
+        NoiseMapBuilder,
+        PlaneMapBuilder,
+    },
+    BasicMulti,
+    Perlin,
+    ScalePoint,
 };
-use rand::{thread_rng, Rng};
+use rand::{
+    thread_rng,
+    Rng,
+};
 
 use crate::{
-    args::{ArgumentsGenerate, ArgumentsLoad},
-    chunk::{Chunk, ChunkPosition, CHUNK_SIZE, MAX_HEIGHT},
+    args::{
+        ArgumentsGenerate,
+        ArgumentsLoad,
+    },
+    chunk::{
+        Chunk,
+        ChunkPosition,
+        CHUNK_SIZE,
+        MAX_HEIGHT,
+    },
     save::SaveData,
-    voxel::{LocalVoxelPosition, VoxelKind, VoxelPosition},
+    voxel::{
+        LocalVoxelPosition,
+        VoxelKind,
+        VoxelPosition,
+    },
     WorldSize,
 };
 

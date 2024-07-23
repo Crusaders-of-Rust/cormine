@@ -1,7 +1,14 @@
 use anyhow::anyhow;
-use bevy::math::{IVec3, Vec3};
+use bevy::math::{
+    IVec3,
+    Vec3,
+};
 
-use crate::chunk::{ChunkPosition, CHUNK_SIZE, MAX_HEIGHT};
+use crate::chunk::{
+    ChunkPosition,
+    CHUNK_SIZE,
+    MAX_HEIGHT,
+};
 
 /// X, Y and Z coordinate of voxel withun the world
 #[derive(Copy, Clone, Debug, Hash)]
@@ -33,7 +40,8 @@ impl VoxelPosition {
     }
 }
 
-/// Position of a voxel within a chunk. Will all be within [0, CHUNK_DIMENSION_SIZE]
+/// Position of a voxel within a chunk. Will all be within [0,
+/// CHUNK_DIMENSION_SIZE]
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct LocalVoxelPosition {
     x: u8,

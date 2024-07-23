@@ -1,14 +1,32 @@
 use crate::mesh;
-use bevy::asset::{Asset, Assets, Handle};
-use bevy::color::{LinearRgba, Srgba};
-use bevy::math::Vec3;
-use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey};
-use bevy::prelude::*;
-use bevy::render::mesh::MeshVertexBufferLayoutRef;
-use bevy::render::render_resource::{
-    AsBindGroup, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError,
+use bevy::{
+    asset::{
+        Asset,
+        Assets,
+        Handle,
+    },
+    color::{
+        LinearRgba,
+        Srgba,
+    },
+    math::Vec3,
+    pbr::{
+        Material,
+        MaterialPipeline,
+        MaterialPipelineKey,
+    },
+    prelude::*,
+    render::{
+        mesh::MeshVertexBufferLayoutRef,
+        render_resource::{
+            AsBindGroup,
+            RenderPipelineDescriptor,
+            ShaderRef,
+            SpecializedMeshPipelineError,
+        },
+        texture::ImageSampler,
+    },
 };
-use bevy::render::texture::ImageSampler;
 
 pub fn make_voxel_material(
     mut commands: Commands,

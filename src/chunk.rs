@@ -1,9 +1,19 @@
 use std::ops::Add;
 
-use crate::voxel::{LocalVoxelPosition, Voxel, VoxelPosition};
+use crate::voxel::{
+    LocalVoxelPosition,
+    Voxel,
+    VoxelPosition,
+};
 
 use bevy::prelude::*;
-use ndarray::{Array3, ArrayView3, ArrayViewMut3, SliceInfo, SliceInfoElem};
+use ndarray::{
+    Array3,
+    ArrayView3,
+    ArrayViewMut3,
+    SliceInfo,
+    SliceInfoElem,
+};
 
 pub const CHUNK_SIZE: usize = 16;
 pub const MAX_HEIGHT: usize = 256;

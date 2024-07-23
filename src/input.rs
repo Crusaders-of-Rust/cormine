@@ -1,13 +1,26 @@
-use crate::chunk::Chunk;
-use crate::highlight::SelectedVoxel;
-use crate::mesh::HasMesh;
-use crate::ui;
-use crate::voxel::{VoxelKind, VoxelPosition};
-use crate::world;
+use crate::{
+    chunk::Chunk,
+    highlight::SelectedVoxel,
+    mesh::HasMesh,
+    ui,
+    voxel::{
+        VoxelKind,
+        VoxelPosition,
+    },
+    world,
+};
 use bevy::prelude::*;
 
-use bevy::input::mouse::{MouseMotion, MouseWheel};
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::{
+    input::mouse::{
+        MouseMotion,
+        MouseWheel,
+    },
+    window::{
+        CursorGrabMode,
+        PrimaryWindow,
+    },
+};
 
 #[derive(Resource, Default)]
 pub struct CameraVelocity {

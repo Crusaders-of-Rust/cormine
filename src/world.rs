@@ -1,11 +1,21 @@
 use std::sync::OnceLock;
 
-use crate::chunk::{Chunk, ChunkPosition};
-use crate::input::SaveEvent;
-use crate::save::SaveData;
-use crate::voxel::{Voxel, VoxelPosition};
-use bevy::prelude::*;
-use bevy::utils::HashMap;
+use crate::{
+    chunk::{
+        Chunk,
+        ChunkPosition,
+    },
+    input::SaveEvent,
+    save::SaveData,
+    voxel::{
+        Voxel,
+        VoxelPosition,
+    },
+};
+use bevy::{
+    prelude::*,
+    utils::HashMap,
+};
 
 #[derive(Default, Resource)]
 pub struct World {
