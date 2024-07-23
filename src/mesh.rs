@@ -171,8 +171,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             };
 
             let mut indices = [2, 1, 0, 3, 2, 0];
-            // FIXME: This is to fix anisotropy. It improves it but isn't fully correct
-            if ao_vals[0] + ao_vals[2] > ao_vals[1] + ao_vals[3] {
+            if ao_vals[0] + ao_vals[2] < ao_vals[1] + ao_vals[3] {
                 indices[0] = 3;
                 indices[5] = 1;
             }
