@@ -30,7 +30,7 @@ use args::ArgumentsCommands;
 use bevy::ecs::system::SystemState;
 use bevy::ecs::world::CommandQueue;
 use bevy::tasks::futures_lite::future;
-use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
+use bevy::tasks::{block_on, AsyncComputeTaskPool, ComputeTaskPool, Task};
 use chunk::Chunk;
 use mesh::HasMesh;
 
@@ -116,12 +116,14 @@ fn main() {
         Startup,
         (make_camera, material::make_voxel_material, ui::draw_ui),
     )
-    .add_systems(Update, material::process_block_texture)
-    .add_event::<input::SaveEvent>()
     .add_systems(
         Update,
+        (material::process_block_texture, input::check_input),
+    )
+    .add_event::<input::SaveEvent>()
+    .add_systems(
+        PostUpdate,
         (
-            input::check_input,
             queue_chunk_meshes,
             handle_mesh_tasks,
             world::process_save_events,
@@ -186,15 +188,27 @@ fn make_camera(mut commands: Commands) {
 #[derive(Component)]
 struct ChunkMeshingTask(Task<CommandQueue>);
 
+/// Marker component for chunks indicating they should be updated synchronously (before the next frame)
+#[derive(Component)]
+struct UpdateSync;
+
 fn queue_chunk_meshes(
     mut commands: Commands,
-    dirty_chunks: Query<(Entity, &Chunk), (Without<HasMesh>, Without<ChunkMeshingTask>)>,
+    dirty_chunks: Query<
+        (Entity, &Chunk, Option<&UpdateSync>),
+        (Without<HasMesh>, Without<ChunkMeshingTask>),
+    >,
     all_chunks: Query<&Chunk>,
     world: Res<world::World>,
 ) {
     info_once!("Started queuing chunk tasks");
     let task_pool = AsyncComputeTaskPool::get();
-    for (ent, chunk) in dirty_chunks.iter().map(|(e, c)| (e, c.clone())).take(32) {
+    let sync_task_pool = ComputeTaskPool::get();
+    for (ent, chunk, sync) in dirty_chunks
+        .iter()
+        .map(|(e, c, sync)| (e, c.clone(), sync.is_some()))
+        .take(32)
+    {
         // get all adjacent chunks
         let mut adj_chunks = Vec::with_capacity(4);
         let chunk_pos = chunk.position();
@@ -217,7 +231,8 @@ fn queue_chunk_meshes(
                 adj_chunks.push(chunk);
             }
         }
-        let task = task_pool.spawn(async move {
+
+        let task = async move {
             let mesh = mesh::from_chunk(chunk.clone(), adj_chunks);
             let mut cmd_queue = CommandQueue::default();
             cmd_queue.push(move |world: &mut World| {
@@ -238,7 +253,13 @@ fn queue_chunk_meshes(
                     .remove::<ChunkMeshingTask>();
             });
             cmd_queue
-        });
+        };
+
+        let task = if sync {
+            sync_task_pool.spawn(task)
+        } else {
+            task_pool.spawn(task)
+        };
         commands.entity(ent).insert(ChunkMeshingTask(task));
     }
     info_once!("Finished queuing chunk tasks");
