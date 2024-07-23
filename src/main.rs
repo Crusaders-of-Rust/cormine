@@ -72,8 +72,6 @@ use material::{
 #[derive(Resource)]
 struct WorldSize {
     width: usize,
-    #[allow(unused)]
-    // TODO: actually use the length arg
     length: usize,
 }
 

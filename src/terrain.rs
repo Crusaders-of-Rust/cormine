@@ -68,6 +68,38 @@ pub fn ground_height_to_voxel(height: usize, is_top_level: bool) -> VoxelKind {
     }
 }
 
+pub fn spiral(max_x: isize, max_y: isize) -> impl Iterator<Item = (isize, isize)> {
+    let mut x = 0;
+    let mut y = 0;
+    let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+    let mut direction_index = 0;
+
+    let mut steps = 1;
+    let mut step_count = 0;
+    let mut steps_in_current_direction = 0;
+    std::iter::from_fn(move || {
+        if !(x <= max_x && y <= max_y) {
+            return None;
+        }
+        let ret = (x, y);
+        x = x.checked_add(directions[direction_index].0).unwrap();
+        y = y.checked_add(directions[direction_index].1).unwrap();
+        steps_in_current_direction += 1;
+
+        if steps_in_current_direction == steps {
+            steps_in_current_direction = 0;
+            direction_index = (direction_index + 1) % 4;
+            step_count += 1;
+            if step_count == 2 {
+                step_count = 0;
+                steps += 1;
+            }
+        }
+
+        Some(ret)
+    })
+}
+
 pub fn generate_chunks(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
@@ -79,26 +111,27 @@ pub fn generate_chunks(
         rng.gen()
     });
     world.set_seed(seed);
-    let chunk_count = size.width;
+    let chunk_count_x = size.width as isize / 2;
+    let chunk_count_z = size.length as isize / 2;
     let noise_map = generate_noise_map(1024, 1024, seed);
-    for chunk_x in 0..chunk_count {
-        for chunk_z in 0..chunk_count {
-            let chunk_pos =
-                ChunkPosition::new((chunk_x * CHUNK_SIZE) as i32, (chunk_z * CHUNK_SIZE) as i32);
-            let mut chunk = Chunk::new().with_position(chunk_pos);
 
-            for x in 0..CHUNK_SIZE {
-                for y in 0..MAX_HEIGHT {
-                    for z in 0..CHUNK_SIZE {
-                        let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                        let global_pos = &chunk_pos + local_pos;
-                        chunk.voxel_mut(local_pos).kind = block_at_position(global_pos, &noise_map);
-                    }
+    for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
+        let chunk_pos = ChunkPosition::new(
+            (chunk_x * CHUNK_SIZE as isize) as i32,
+            (chunk_z * CHUNK_SIZE as isize) as i32,
+        );
+        let mut chunk = Chunk::new().with_position(chunk_pos);
+
+        for x in 0..CHUNK_SIZE {
+            for y in 0..MAX_HEIGHT {
+                for z in 0..CHUNK_SIZE {
+                    let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
+                    let global_pos = &chunk_pos + local_pos;
+                    chunk.voxel_mut(local_pos).kind = block_at_position(global_pos, &noise_map);
                 }
             }
-
-            world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
         }
+        world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
     }
 }
 
@@ -142,30 +175,31 @@ pub fn load_chunks(
         .collect::<HashMap<_, _>>();
     let seed = save.seed;
     world.set_seed(seed);
-    let chunk_count = size.width;
+    let chunk_count_x = size.width as isize / 2;
+    let chunk_count_z = size.length as isize / 2;
     let noise_map = generate_noise_map(1024, 1024, seed);
-    for chunk_x in 0..chunk_count {
-        for chunk_z in 0..chunk_count {
-            let chunk_pos =
-                ChunkPosition::new((chunk_x * CHUNK_SIZE) as i32, (chunk_z * CHUNK_SIZE) as i32);
-            let mut chunk = Chunk::new().with_position(chunk_pos);
 
-            for x in 0..CHUNK_SIZE {
-                for y in 0..MAX_HEIGHT {
-                    for z in 0..CHUNK_SIZE {
-                        let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                        let global_pos = &chunk_pos + local_pos;
-                        let voxel_kind = if let Some(change) = changes.get(&global_pos.as_ivec3()) {
-                            change.kind
-                        } else {
-                            block_at_position(global_pos, &noise_map)
-                        };
-                        chunk.voxel_mut(local_pos).kind = voxel_kind;
-                    }
+    for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
+        let chunk_pos = ChunkPosition::new(
+            (chunk_x * CHUNK_SIZE as isize) as i32,
+            (chunk_z * CHUNK_SIZE as isize) as i32,
+        );
+        let mut chunk = Chunk::new().with_position(chunk_pos);
+
+        for x in 0..CHUNK_SIZE {
+            for y in 0..MAX_HEIGHT {
+                for z in 0..CHUNK_SIZE {
+                    let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
+                    let global_pos = &chunk_pos + local_pos;
+                    let voxel_kind = if let Some(change) = changes.get(&global_pos.as_ivec3()) {
+                        change.kind
+                    } else {
+                        block_at_position(global_pos, &noise_map)
+                    };
+                    chunk.voxel_mut(local_pos).kind = voxel_kind;
                 }
             }
-
-            world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
         }
+        world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
     }
 }
