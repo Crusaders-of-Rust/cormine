@@ -4,7 +4,7 @@ use bevy::prelude::*;
 pub struct SelectedPosition;
 
 #[derive(Component)]
-pub struct WaterOverlay;
+pub struct ColorOverlay;
 
 pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
@@ -19,7 +19,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             background_color: BackgroundColor(Color::NONE),
             ..Default::default()
         },
-        WaterOverlay,
+        ColorOverlay,
     ));
 
     let crosshair_handle = asset_server.load("images/crosshair.png");

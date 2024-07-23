@@ -90,6 +90,8 @@ fn main() {
     app.init_resource::<SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
+    app.init_resource::<input::QuitCounter>();
+
     match args.commands {
         ArgumentsCommands::Generate(generate) => {
             app.add_systems(Startup, terrain::generate_chunks)

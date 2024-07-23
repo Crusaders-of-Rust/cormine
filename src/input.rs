@@ -1,6 +1,7 @@
 use crate::chunk::Chunk;
 use crate::highlight::SelectedVoxel;
 use crate::mesh::HasMesh;
+use crate::ui;
 use crate::voxel::{VoxelKind, VoxelPosition};
 use crate::world;
 use bevy::prelude::*;
@@ -64,6 +65,9 @@ pub fn check_input(
     selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
     mut scroll: EventReader<MouseWheel>,
     mut ev_save: EventWriter<SaveEvent>,
+    color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
+    // FIXME: Hit system param limit. Split these into their own functions
+    (quit_counter, time, exit): (ResMut<QuitCounter>, Res<Time>, EventWriter<AppExit>),
 ) {
     let window = &mut qwindow.single_mut();
     let camera_transform = camera_transform.single();
@@ -90,6 +94,10 @@ pub fn check_input(
         &mut scroll,
         selected_pos,
         &mut ev_save,
+        color_overlay,
+        quit_counter,
+        time,
+        exit,
     );
 }
 
@@ -260,6 +268,12 @@ fn handle_movement(
     }
 }
 
+// TODO: Add a quitting wheel
+const QUIT_SECONDS: f32 = 1.0;
+/// While `Esc` is held, count up for [`QUIT_SECONDS`] to 1.0 then quit the game
+#[derive(Resource, Default)]
+pub struct QuitCounter(f32);
+
 fn handle_special_keys(
     keys: &ButtonInput<KeyCode>,
     window: &mut Window,
@@ -267,14 +281,31 @@ fn handle_special_keys(
     scroll: &mut EventReader<MouseWheel>,
     mut selected_pos: Query<(&mut crate::ui::SelectedPosition, &mut Style)>,
     ev_save: &mut EventWriter<SaveEvent>,
+    mut color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
+    mut quit_counter: ResMut<QuitCounter>,
+    time: Res<Time>,
+    mut exit: EventWriter<AppExit>,
 ) {
     if keys.just_pressed(KeyCode::Escape) {
-        let (grab_mode, visible) = match window.cursor.grab_mode {
-            CursorGrabMode::None => (CursorGrabMode::Locked, false),
-            CursorGrabMode::Locked | CursorGrabMode::Confined => (CursorGrabMode::None, true),
+        let (grab_mode, visible, color) = match window.cursor.grab_mode {
+            CursorGrabMode::None => (CursorGrabMode::Locked, false, Color::NONE),
+            CursorGrabMode::Locked | CursorGrabMode::Confined => {
+                (CursorGrabMode::None, true, Color::BLACK.with_alpha(0.5))
+            }
         };
         window.cursor.grab_mode = grab_mode;
         window.cursor.visible = visible;
+        let mut color_overlay = color_overlay.single_mut();
+        color_overlay.0 = color;
+    }
+
+    if keys.pressed(KeyCode::Escape) {
+        quit_counter.0 += time.delta_seconds() / QUIT_SECONDS;
+        if quit_counter.0 >= 1.0 {
+            exit.send(AppExit::Success);
+        }
+    } else {
+        quit_counter.0 = 0.0;
     }
 
     let mut new_selected = input_state.selected_voxel;
