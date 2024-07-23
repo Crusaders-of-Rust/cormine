@@ -164,10 +164,22 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             }
 
             let verts = face_vertices.map(|f| (pos + VERTICES[f]).as_vec3().to_array());
-            let ao_vals = ao_values_for_face(voxels, pos, face_direction);
+            let ao_vals = if material.receives_shadow() {
+                ao_values_for_face(voxels, pos, face_direction)
+            } else {
+                [3, 3, 3, 3]
+            };
+
+            let mut indices = [2, 1, 0, 3, 2, 0];
+            // FIXME: This is to fix anisotropy. It improves it but isn't fully correct
+            if ao_vals[0] + ao_vals[2] > ao_vals[1] + ao_vals[3] {
+                indices[0] = 3;
+                indices[5] = 1;
+            }
+
             // TODO: It uses less memory (40 vs 24 bytes per face) to use vertices only and no indexes
             // However, it should use less if we were to share vertices across the whole chunk
-            for idx in [2, 1, 0, 3, 2, 0] {
+            for idx in indices {
                 per_vertex_data.set_uv(idx as u32);
                 let vertex = verts[idx];
                 per_vertex_data.set_neighbours(ao_vals[idx]);

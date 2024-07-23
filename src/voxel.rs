@@ -127,7 +127,11 @@ impl Voxel {
     }
 
     pub fn casts_shadow(&self) -> bool {
-        self.kind().has_collision()
+        self.kind().casts_shadow()
+    }
+
+    pub fn receives_shadow(&self) -> bool {
+        self.kind().receives_shadow()
     }
 
     pub fn kind(&self) -> VoxelKind {
@@ -182,6 +186,10 @@ impl VoxelKind {
     }
 
     pub fn casts_shadow(&self) -> bool {
+        !matches!(self, VoxelKind::Air | VoxelKind::Water)
+    }
+
+    pub fn receives_shadow(&self) -> bool {
         !matches!(self, VoxelKind::Air | VoxelKind::Water)
     }
 }
