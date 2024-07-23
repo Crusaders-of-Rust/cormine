@@ -7,10 +7,11 @@ use bevy::math::{
 use crate::chunk::{
     ChunkPosition,
     CHUNK_SIZE,
+    CHUNK_SIZE_I,
     MAX_HEIGHT,
 };
 
-/// X, Y and Z coordinate of voxel withun the world
+/// X, Y and Z coordinate of voxel within the world
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct VoxelPosition(IVec3);
 
@@ -37,6 +38,37 @@ impl VoxelPosition {
 
     pub fn as_vec3(&self) -> Vec3 {
         Vec3::new(self.x() as _, self.y() as _, self.z() as _)
+    }
+
+    // Calculate the 4 possible chunks neighbouring this one
+    pub fn neighbouring_chunks(&self) -> NeighbouringChunks {
+        let this_chunk: ChunkPosition = (*self).into();
+        let neg_x =
+            (self.x() % CHUNK_SIZE_I == 0).then(|| this_chunk + IVec3::NEG_X * CHUNK_SIZE_I);
+
+        let x = (self.x() % CHUNK_SIZE_I == CHUNK_SIZE_I - 1)
+            .then(|| this_chunk + IVec3::X * CHUNK_SIZE_I);
+
+        let neg_z =
+            (self.z() % CHUNK_SIZE_I == 0).then(|| this_chunk + IVec3::NEG_Z * CHUNK_SIZE_I);
+
+        let z = (self.z() % CHUNK_SIZE_I == CHUNK_SIZE_I - 1)
+            .then(|| this_chunk + IVec3::Z * CHUNK_SIZE_I);
+
+        NeighbouringChunks { neg_x, x, neg_z, z }
+    }
+}
+
+pub struct NeighbouringChunks {
+    pub neg_x: Option<ChunkPosition>,
+    pub x: Option<ChunkPosition>,
+    pub neg_z: Option<ChunkPosition>,
+    pub z: Option<ChunkPosition>,
+}
+
+impl NeighbouringChunks {
+    pub fn all(&self) -> [Option<ChunkPosition>; 4] {
+        [self.neg_x, self.x, self.neg_z, self.z]
     }
 }
 

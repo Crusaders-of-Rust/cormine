@@ -31,6 +31,10 @@ impl World {
         );
     }
 
+    pub fn chunk_at(&self, pos: ChunkPosition) -> Option<Entity> {
+        self.chunk_map.get(&pos).copied()
+    }
+
     pub fn chunk_containing(&self, pos: VoxelPosition) -> Option<Entity> {
         let chunk_base: ChunkPosition = pos.into();
         self.chunk_map.get(&chunk_base).copied()

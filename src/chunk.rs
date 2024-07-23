@@ -16,6 +16,7 @@ use ndarray::{
 };
 
 pub const CHUNK_SIZE: usize = 16;
+pub const CHUNK_SIZE_I: i32 = CHUNK_SIZE as i32;
 pub const MAX_HEIGHT: usize = 256;
 const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, MAX_HEIGHT, CHUNK_SIZE);
 
@@ -25,8 +26,8 @@ pub struct ChunkPosition(IVec2);
 
 impl ChunkPosition {
     pub fn new(x: i32, z: i32) -> Self {
-        debug_assert!(x % CHUNK_SIZE as i32 == 0);
-        debug_assert!(z % CHUNK_SIZE as i32 == 0);
+        debug_assert!(x % CHUNK_SIZE_I == 0);
+        debug_assert!(z % CHUNK_SIZE_I == 0);
         Self(IVec2 { x, y: z })
     }
 
@@ -63,6 +64,15 @@ impl Add<LocalVoxelPosition> for ChunkPosition {
 
     fn add(self, rhs: LocalVoxelPosition) -> Self::Output {
         VoxelPosition::new(self.as_ivec3() + rhs.as_ivec3())
+    }
+}
+
+impl Add<IVec3> for ChunkPosition {
+    type Output = ChunkPosition;
+
+    fn add(self, rhs: IVec3) -> Self::Output {
+        let pos = self.as_ivec3() + rhs;
+        ChunkPosition::new(pos.x, pos.z)
     }
 }
 

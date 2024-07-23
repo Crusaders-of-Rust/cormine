@@ -89,38 +89,14 @@ pub fn handle_lmb(
             .entity(chunk)
             .remove::<HasMesh>()
             .insert(crate::UpdateSync);
-        // clear HasMesh flag from potential adjacent chunk
-        // check if selected voxel is on chunk boundary
-        if selected_voxel.x() % 16 == 0 {
-            let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(-16, 0, 0);
-            if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
-                commands
-                    .entity(adj_chunk)
-                    .remove::<HasMesh>()
-                    .insert(crate::UpdateSync);
-            }
-        }
-        if selected_voxel.x() % 16 == 15 {
-            let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(16, 0, 0);
-            if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
-                commands
-                    .entity(adj_chunk)
-                    .remove::<HasMesh>()
-                    .insert(crate::UpdateSync);
-            }
-        }
-        if selected_voxel.z() % 16 == 0 {
-            let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, -16);
-            if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
-                commands
-                    .entity(adj_chunk)
-                    .remove::<HasMesh>()
-                    .insert(crate::UpdateSync);
-            }
-        }
-        if selected_voxel.z() % 16 == 15 {
-            let adj_pos = chunk_data.position().as_ivec3() + IVec3::new(0, 0, 16);
-            if let Some(adj_chunk) = world.chunk_containing(VoxelPosition::new(adj_pos)) {
+        // clear HasMesh flag from any adjacent chunk
+        for chunk_pos in selected_voxel
+            .neighbouring_chunks()
+            .all()
+            .iter()
+            .filter_map(|cp| *cp)
+        {
+            if let Some(adj_chunk) = world.chunk_at(chunk_pos) {
                 commands
                     .entity(adj_chunk)
                     .remove::<HasMesh>()
