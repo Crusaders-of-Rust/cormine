@@ -83,9 +83,9 @@ pub fn player_move(
     }
 
     let mut water_overlay = water_overlay.single_mut();
-    let is_head_in_wate = get_voxel(*pos, IVec3::new(0, PLAYER_HEIGHT, 0))
+    let is_head_in_water = get_voxel(*pos, IVec3::new(0, PLAYER_HEIGHT, 0))
         .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
-    if is_head_in_wate {
+    if is_head_in_water {
         water_overlay.1 .0 = Color::linear_rgba(0.0, 0.0, 0.5, 0.5);
     } else {
         water_overlay.1 .0 = Color::NONE;
