@@ -155,6 +155,10 @@ impl Voxel {
         kind: VoxelKind::Water,
     };
 
+    pub const BEDROCK: Self = Self {
+        kind: VoxelKind::Bedrock,
+    };
+
     pub fn should_mesh(&self) -> bool {
         self.kind().should_mesh()
     }
@@ -173,6 +177,10 @@ impl Voxel {
 
     pub fn receives_shadow(&self) -> bool {
         self.kind().receives_shadow()
+    }
+
+    pub fn breakable(&self) -> bool {
+        self.kind().breakable()
     }
 
     pub fn kind(&self) -> VoxelKind {
@@ -194,6 +202,7 @@ pub enum VoxelKind {
     Water = 2,
     Snow = 3,
     Dirt = 4,
+    Bedrock = 5,
 }
 
 impl TryFrom<u8> for VoxelKind {
@@ -207,6 +216,7 @@ impl TryFrom<u8> for VoxelKind {
             2 => Water,
             3 => Snow,
             4 => Dirt,
+            5 => Bedrock,
             255 => Air,
             x => return Err(anyhow!("invalid voxel kind `{x}`")),
         })
@@ -232,5 +242,9 @@ impl VoxelKind {
 
     pub fn receives_shadow(&self) -> bool {
         !matches!(self, VoxelKind::Air | VoxelKind::Water)
+    }
+
+    pub fn breakable(&self) -> bool {
+        !matches!(self, VoxelKind::Bedrock)
     }
 }

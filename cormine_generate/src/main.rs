@@ -58,6 +58,7 @@ pub enum VoxelKind {
     Water = 2,
     Snow = 3,
     Dirt = 4,
+    Bedrock = 5,
 }
 
 #[derive(Debug)]
@@ -181,7 +182,7 @@ fn challenge1() -> (&'static str, WorldData) {
     let box_sz = 10;
     let box_start = (start.0 - box_sz, start.1 - box_sz, start.2 - box_sz);
     let box_end = (end_x + box_sz, end_y + box_sz, start.2 + box_sz);
-    add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Stone, false);
+    add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Bedrock, false);
 
     (name, wd)
 }

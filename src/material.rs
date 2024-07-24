@@ -59,7 +59,7 @@ pub fn process_block_texture(
     let Some(image) = images.get_mut(&material.img_handle) else {
         return;
     };
-    image.reinterpret_stacked_2d_as_array(5);
+    image.reinterpret_stacked_2d_as_array(6);
     image.sampler = ImageSampler::nearest();
     material.textures_loaded = true;
 }

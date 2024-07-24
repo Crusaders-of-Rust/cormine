@@ -80,24 +80,26 @@ pub fn handle_lmb(
             .expect("Selected voxel is not in a chunk");
         let mut chunk_data = chunks.get_mut(chunk).expect("Chunk does not exist");
         let voxel = chunk_data.voxel_mut(selected_voxel.into());
-        voxel.clear();
+        if voxel.breakable() {
+            voxel.clear();
 
-        commands
-            .entity(chunk)
-            .remove::<HasMesh>()
-            .insert(crate::UpdateSync);
-        // clear HasMesh flag from any adjacent chunk
-        for chunk_pos in selected_voxel
-            .neighbouring_chunks()
-            .all()
-            .iter()
-            .filter_map(|cp| *cp)
-        {
-            if let Some(adj_chunk) = world.chunk_at(chunk_pos) {
-                commands
-                    .entity(adj_chunk)
-                    .remove::<HasMesh>()
-                    .insert(crate::UpdateSync);
+            commands
+                .entity(chunk)
+                .remove::<HasMesh>()
+                .insert(crate::UpdateSync);
+            // clear HasMesh flag from any adjacent chunk
+            for chunk_pos in selected_voxel
+                .neighbouring_chunks()
+                .all()
+                .iter()
+                .filter_map(|cp| *cp)
+            {
+                if let Some(adj_chunk) = world.chunk_at(chunk_pos) {
+                    commands
+                        .entity(adj_chunk)
+                        .remove::<HasMesh>()
+                        .insert(crate::UpdateSync);
+                }
             }
         }
     }
