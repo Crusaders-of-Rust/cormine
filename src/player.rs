@@ -61,15 +61,9 @@ pub fn player_move(
         voxel.has_collision()
     };
 
-    let is_on_ground = has_collision(*pos, IVec3::new(0, 0, 0));
+    let is_on_ground = has_collision(*pos, IVec3::new(0, -1, 0));
     let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0))
         .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
-
-    // snap to ground
-    if vel.y < 0.0 && is_on_ground {
-        vel.y = 0.0;
-        pos.y = (pos.y + 0.1).floor();
-    }
 
     if input_state.fly_hack {
         vel.y = if input_state.space_held {
@@ -98,6 +92,12 @@ pub fn player_move(
         water_overlay.0 = WATER_OVERLAY_COLOR
     } else if water_overlay.0 == WATER_OVERLAY_COLOR {
         water_overlay.0 = Color::NONE;
+    }
+
+    // snap to ground
+    if vel.y < 0.0 && is_on_ground {
+        vel.y = 0.0;
+        pos.y = (pos.y + 0.1).floor();
     }
 
     // Collision above head
