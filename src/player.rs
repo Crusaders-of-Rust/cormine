@@ -32,17 +32,6 @@ pub fn player_move(
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
-
-    if !input_state.fly_hack {
-        vel.y -= GRAVITY * time.delta_seconds();
-    }
-
-    *pos += *vel * time.delta_seconds();
-
-    // velocity decay
-    vel.x *= 0.9 * (time.delta_seconds() / 1000.0);
-    vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
-
     let get_voxel = |player_pos: Vec3, offset: IVec3| -> Option<&Voxel> {
         let check_pos = player_pos.as_ivec3() + offset + IVec3::new(0, -PLAYER_HEIGHT, 0);
         let voxel_pos = VoxelPosition::new(check_pos);
@@ -53,6 +42,24 @@ pub fn player_move(
         Some(chunk.voxel(voxel_pos.into()))
     };
 
+    let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0))
+        .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
+
+    if !input_state.fly_hack {
+        let (g_accel, max_vel) = if is_in_water {
+            (10.0, -10.0)
+        } else {
+            (GRAVITY, -30.0)
+        };
+        vel.y = (vel.y - g_accel * time.delta_seconds()).max(max_vel);
+    }
+
+    *pos += *vel * time.delta_seconds();
+
+    // velocity decay
+    vel.x *= 0.9 * (time.delta_seconds() / 1000.0);
+    vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
+
     let has_collision = |player_pos: Vec3, offset: IVec3| -> bool {
         let Some(voxel) = get_voxel(player_pos, offset) else {
             return false;
@@ -62,8 +69,6 @@ pub fn player_move(
     };
 
     let is_on_ground = has_collision(*pos, IVec3::new(0, -1, 0));
-    let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0))
-        .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
 
     if input_state.fly_hack {
         vel.y = if input_state.space_held {
