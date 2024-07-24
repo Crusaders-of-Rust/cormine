@@ -179,6 +179,10 @@ impl Voxel {
         self.kind().receives_shadow()
     }
 
+    pub fn cull_faces(&self) -> bool {
+        self.kind().cull_faces()
+    }
+
     pub fn breakable(&self) -> bool {
         self.kind().breakable()
     }
@@ -245,6 +249,10 @@ impl VoxelKind {
     }
 
     pub fn breakable(&self) -> bool {
+        !matches!(self, VoxelKind::Bedrock)
+    }
+
+    pub fn cull_faces(&self) -> bool {
         !matches!(self, VoxelKind::Bedrock)
     }
 }

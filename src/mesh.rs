@@ -171,13 +171,17 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             let mut per_vertex_data = VertexData::new();
             per_vertex_data.set_normal_idx(i as u32);
             per_vertex_data.set_material(material);
-            // Don't render faces touching a solid voxel
-            if !adj.transparent() {
-                continue;
-            }
-            // Don't render faces between multiple transparent blocks of the same type
-            if adj.transparent() && adj.kind() == material {
-                continue;
+            // For challenge reasons, we don't do face culling on bedrock, as this can make
+            // clipping bugs exploitable. This should be removed later
+            if material.cull_faces() {
+                // Don't render faces touching a solid voxel
+                if !adj.transparent() {
+                    continue;
+                }
+                // Don't render faces between multiple transparent blocks of the same type
+                if adj.transparent() && adj.kind() == material {
+                    continue;
+                }
             }
 
             let verts = face_vertices.map(|f| (pos + VERTICES[f]).as_vec3().to_array());

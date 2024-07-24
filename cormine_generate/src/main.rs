@@ -179,11 +179,13 @@ fn challenge1() -> (&'static str, WorldData) {
 
     let start = (-40, 80, 0);
     let (end_x, end_y) = add_string_to_world("corCTF{wallhacks}", start, &mut wd, VoxelKind::Stone);
-    let box_sz = 10;
-    let box_start = (start.0 - box_sz, start.1 - box_sz, start.2 - box_sz);
-    let box_end = (end_x + box_sz, end_y + box_sz, start.2 + box_sz);
-    add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Bedrock, false);
 
+    // To avoid bugs with headglitching, make box extra thick
+    for box_sz in [10, 11, 12] {
+        let box_start = (start.0 - box_sz, start.1 - box_sz, start.2 - box_sz);
+        let box_end = (end_x + box_sz, end_y + box_sz, start.2 + box_sz);
+        add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Bedrock, false);
+    }
     (name, wd)
 }
 
