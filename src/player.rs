@@ -19,7 +19,10 @@ const JUMP_VELOCITY: f32 = 10.0;
 const FLY_SPEED_VERTICAL: f32 = 15.0;
 const WATER_ACCELERATION: f32 = 0.5;
 const MAX_SWIM_UP_SPEED: f32 = 4.0;
-const PLAYER_HEIGHT: i32 = 2;
+const PLAYER_HEIGHT: f32 = 2.0;
+const PLAYER_CAMERA_HEIGHT: f32 = 1.8;
+const _: () = assert!(PLAYER_HEIGHT >= PLAYER_CAMERA_HEIGHT);
+const PLAYER_SIDE_LENGTH: f32 = 1.0;
 
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
@@ -32,9 +35,9 @@ pub fn player_move(
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
-    let get_voxel = |player_pos: Vec3, offset: IVec3| -> Option<&Voxel> {
-        let check_pos = player_pos.as_ivec3() + offset + IVec3::new(0, -PLAYER_HEIGHT, 0);
-        let voxel_pos = VoxelPosition::new(check_pos);
+    let get_voxel = |player_pos: Vec3, offset: Vec3| -> Option<&Voxel> {
+        let check_pos = player_pos + offset + Vec3::new(0.0, -PLAYER_HEIGHT, 0.0);
+        let voxel_pos = VoxelPosition::new(check_pos.as_ivec3());
 
         let chunk_ent = world.chunk_containing(voxel_pos)?;
 
@@ -42,8 +45,8 @@ pub fn player_move(
         Some(chunk.voxel(voxel_pos.into()))
     };
 
-    let is_in_water = get_voxel(*pos, IVec3::new(0, -1, 0))
-        .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
+    let is_in_water =
+        get_voxel(*pos, Vec3::NEG_Y).map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
 
     if !input_state.fly_hack {
         let (g_accel, max_vel) = if is_in_water {
@@ -54,21 +57,53 @@ pub fn player_move(
         vel.y = (vel.y - g_accel * time.delta_seconds()).max(max_vel);
     }
 
-    *pos += *vel * time.delta_seconds();
-
-    // velocity decay
-    vel.x *= 0.9 * (time.delta_seconds() / 1000.0);
-    vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
-
-    let has_collision = |player_pos: Vec3, offset: IVec3| -> bool {
+    let has_collision = |player_pos: Vec3, offset: Vec3| -> bool {
         let Some(voxel) = get_voxel(player_pos, offset) else {
             return false;
         };
-
         voxel.has_collision()
     };
 
-    let is_on_ground = has_collision(*pos, IVec3::new(0, -1, 0));
+    #[derive(Default, Debug)]
+    struct Collisions {
+        neg_x: bool,
+        neg_y: bool,
+        neg_z: bool,
+        x: bool,
+        y: bool,
+        z: bool,
+    }
+    let collisions = {
+        let mut collisions = Collisions::default();
+
+        for base_pos in [
+            *pos + Vec3::NEG_Y * PLAYER_CAMERA_HEIGHT,
+            *pos,
+            *pos + Vec3::Y * (PLAYER_HEIGHT - PLAYER_CAMERA_HEIGHT),
+            *pos + Vec3::Y * 2.0,
+        ] {
+            if has_collision(base_pos, Vec3::NEG_X * PLAYER_SIDE_LENGTH) {
+                collisions.neg_x = true;
+            }
+            if has_collision(base_pos, Vec3::NEG_Y) {
+                collisions.neg_y = true;
+            }
+            if has_collision(base_pos, Vec3::NEG_Z * PLAYER_SIDE_LENGTH) {
+                collisions.neg_z = true;
+            }
+            if has_collision(base_pos, Vec3::X * PLAYER_SIDE_LENGTH) {
+                collisions.x = true;
+            }
+            if has_collision(base_pos, Vec3::Y) {
+                collisions.y = true;
+            }
+            if has_collision(base_pos, Vec3::Z * PLAYER_SIDE_LENGTH) {
+                collisions.z = true;
+            }
+        }
+        collisions
+    };
+    let is_on_ground = collisions.neg_y;
 
     if input_state.fly_hack {
         vel.y = if input_state.space_held {
@@ -90,7 +125,7 @@ pub fn player_move(
     }
 
     let mut water_overlay = color_overlay.single_mut();
-    let is_head_in_water = get_voxel(*pos, IVec3::new(0, PLAYER_HEIGHT, 0))
+    let is_head_in_water = get_voxel(*pos, Vec3::new(0.0, PLAYER_HEIGHT, 0.0))
         .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
     const WATER_OVERLAY_COLOR: Color = Color::linear_rgba(0.0, 0.0, 0.5, 0.5);
     if is_head_in_water {
@@ -99,42 +134,31 @@ pub fn player_move(
         water_overlay.0 = Color::NONE;
     }
 
-    // snap to ground
-    if vel.y < 0.0 && is_on_ground {
+    if vel.y < 0.0 && collisions.neg_y {
         vel.y = 0.0;
-        pos.y = (pos.y + 0.1).floor();
     }
 
-    // Collision above head
-    if vel.y > 0.0 && has_collision(*pos, IVec3::new(0, 2, 0)) {
-        pos.y = pos.y.floor();
+    if vel.y > 0.0 && collisions.y {
         vel.y = 0.0;
     }
 
     // Collision in 4 cardinal directions
-    if vel.x > 0.0
-        && (has_collision(*pos, IVec3::new(1, 0, 0)) || has_collision(*pos, IVec3::new(1, 1, 0)))
-    {
-        pos.x = (pos.x + 0.1).floor();
+    if vel.x > 0.0 && collisions.x {
         vel.x = 0.0;
     }
-    if vel.x < 0.0
-        && (has_collision(*pos, IVec3::new(-1, 0, 0)) || has_collision(*pos, IVec3::new(-1, 1, 0)))
-    {
-        pos.x = (pos.x - 0.1).ceil();
+    if vel.x < 0.0 && collisions.neg_x {
         vel.x = 0.0;
     }
 
-    if vel.z > 0.0
-        && (has_collision(*pos, IVec3::new(0, 0, 1)) || has_collision(*pos, IVec3::new(0, 1, 1)))
-    {
-        pos.z = (pos.z + 0.1).floor();
+    if vel.z > 0.0 && collisions.z {
         vel.z = 0.0;
     }
-    if vel.z < 0.0
-        && (has_collision(*pos, IVec3::new(0, 0, -1)) || has_collision(*pos, IVec3::new(0, 1, -1)))
-    {
-        pos.z = (pos.z - 0.1).ceil();
+    if vel.z < 0.0 && collisions.neg_z {
         vel.z = 0.0;
     }
+
+    *pos += *vel * time.delta_seconds();
+    // velocity decay
+    vel.x *= 0.9 * (time.delta_seconds() / 1000.0);
+    vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
 }
