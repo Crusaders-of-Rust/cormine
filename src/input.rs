@@ -158,8 +158,10 @@ pub fn handle_movement_keys(
 ) {
     let camera_transform = camera_transform.single();
     let camera_velocity = &mut camera_velocity.vel;
-    let camera_forward = camera_transform.forward().with_y(0.0);
-    let camera_right = camera_transform.right().with_y(0.0);
+    let looking_at = camera_transform.local_z();
+    let rotate = Quat::from_rotation_y(f32::atan2(looking_at.x, looking_at.z));
+    let camera_forward = rotate * Vec3::NEG_Z;
+    let camera_right = rotate * Vec3::X;
 
     let mut speed_factor = if keys.pressed(KeyCode::ControlLeft) {
         12.5
