@@ -69,12 +69,6 @@ use material::{
     VoxelMaterialResource,
 };
 
-#[derive(Resource)]
-struct WorldSize {
-    width: usize,
-    length: usize,
-}
-
 fn main() {
     let args = argh::from_env::<args::Arguments>();
     let mut app = App::new();
@@ -120,10 +114,6 @@ fn main() {
                 .insert_resource(load);
         }
     };
-    app.insert_resource(WorldSize {
-        width: args.width,
-        length: args.length,
-    });
 
     #[cfg(feature = "wireframe")]
     {

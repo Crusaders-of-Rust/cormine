@@ -20,6 +20,8 @@ use bevy::{
 #[derive(Default, Resource)]
 pub struct World {
     seed: OnceLock<u32>,
+    /// The width and length in chunks of the world
+    dimensions: OnceLock<(usize, usize)>,
     chunk_map: HashMap<ChunkPosition, Entity>,
 }
 
@@ -57,6 +59,19 @@ impl World {
 
     pub fn seed(&self) -> u32 {
         *self.seed.get().expect("accessing world seed before set")
+    }
+
+    pub fn set_dimensions(&self, size: (usize, usize)) {
+        self.dimensions
+            .set(size)
+            .expect("world dimensions should only be set once")
+    }
+
+    pub fn dimensions(&self) -> (usize, usize) {
+        *self
+            .dimensions
+            .get()
+            .expect("accessing world dimensions before set")
     }
 
     /// Iterate over each chunk entity and it's position

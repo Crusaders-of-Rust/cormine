@@ -46,6 +46,11 @@ impl<'file> Serializer<'file> {
         leb128::write::signed(&mut self.file, value)?;
         Ok(())
     }
+
+    pub fn write_leb128_unsigned(&mut self, value: u64) -> Result<()> {
+        leb128::write::unsigned(&mut self.file, value)?;
+        Ok(())
+    }
 }
 
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
@@ -64,6 +69,8 @@ pub enum VoxelKind {
 #[derive(Debug)]
 struct WorldData {
     seed: u32,
+    width: usize,
+    length: usize,
     blocks: HashMap<(i32, i32, i32), VoxelKind>,
 }
 
@@ -76,6 +83,8 @@ impl WorldData {
             .open(path)?;
         let mut ser = Serializer { file: &mut f };
         ser.write_u32(self.seed)?;
+        ser.write_leb128_unsigned(self.width as _)?;
+        ser.write_leb128_unsigned(self.length as _)?;
         for (&(x, y, z), &vox) in self.blocks.iter() {
             ser.write_leb128_signed(x as _)?;
             ser.write_leb128_signed(y as _)?;
@@ -174,6 +183,8 @@ fn challenge1() -> (&'static str, WorldData) {
     let array = HashMap::new();
     let mut wd = WorldData {
         seed,
+        width: 16,
+        length: 8,
         blocks: array,
     };
 

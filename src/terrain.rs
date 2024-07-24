@@ -36,7 +36,6 @@ use crate::{
         VoxelKind,
         VoxelPosition,
     },
-    WorldSize,
 };
 
 pub fn generate_noise_map(width: usize, height: usize, seed: u32) -> NoiseMap {
@@ -104,15 +103,14 @@ pub fn generate_chunks(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
     options: Res<ArgumentsGenerate>,
-    size: Res<WorldSize>,
 ) {
     let seed = options.seed.unwrap_or_else(|| {
         let mut rng = thread_rng();
         rng.gen()
     });
     world.set_seed(seed);
-    let chunk_count_x = size.width as isize / 2;
-    let chunk_count_z = size.length as isize / 2;
+    let chunk_count_x = options.width as isize / 2;
+    let chunk_count_z = options.length as isize / 2;
     let noise_map = generate_noise_map(1024, 1024, seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
@@ -165,7 +163,6 @@ pub fn load_chunks(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
     options: Res<ArgumentsLoad>,
-    size: Res<WorldSize>,
 ) {
     let save = SaveData::from_file(&options.path).unwrap();
     let changes = save
@@ -175,8 +172,10 @@ pub fn load_chunks(
         .collect::<HashMap<_, _>>();
     let seed = save.seed;
     world.set_seed(seed);
-    let chunk_count_x = size.width as isize / 2;
-    let chunk_count_z = size.length as isize / 2;
+    let (width, length) = (save.width, save.length);
+    world.set_dimensions((width, length));
+    let chunk_count_x = width as isize / 2;
+    let chunk_count_z = length as isize / 2;
     let noise_map = generate_noise_map(1024, 1024, seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {

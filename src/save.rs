@@ -21,6 +21,8 @@ use crate::{
 
 pub struct SaveData {
     pub seed: u32,
+    pub width: usize,
+    pub length: usize,
     pub voxels: Vec<(IVec3, Voxel)>,
 }
 
@@ -45,6 +47,8 @@ impl SaveData {
         Cursor: Seek + Read,
     {
         let seed = reader.read_u32()?;
+        let width = reader.read_leb128_unsigned()? as _;
+        let length = reader.read_leb128_unsigned()? as _;
         let mut voxels = Vec::new();
         loop {
             let Ok(x) = reader.read_leb128_signed() else {
@@ -55,12 +59,18 @@ impl SaveData {
             let kind = reader.read_byte().and_then(TryInto::try_into)?;
             voxels.push((IVec3::new(x as _, y as _, z as _), Voxel { kind }))
         }
-        Ok(Self { seed, voxels })
+        Ok(Self {
+            seed,
+            width,
+            length,
+            voxels,
+        })
     }
 
     pub fn from_world(query: Query<&Chunk>, world: &World) -> Self {
         let seed = world.seed();
         let noise_map = crate::terrain::generate_noise_map(1024, 1024, seed);
+        let (width, length) = world.dimensions();
         let mut voxels = Vec::new();
         for (_, chunk) in world.iter() {
             let chunk = query.get(chunk).expect("invalid chunk in world");
@@ -70,7 +80,12 @@ impl SaveData {
                 }
             }
         }
-        Self { seed, voxels }
+        Self {
+            seed,
+            width,
+            length,
+            voxels,
+        }
     }
 
     pub fn to_file<P: AsRef<Path>>(&self, path: P, replace: bool) -> Result<()> {
@@ -91,6 +106,8 @@ impl SaveData {
         Cursor: Seek + Write,
     {
         writer.write_u32(self.seed)?;
+        writer.write_leb128_unsigned(self.width as _)?;
+        writer.write_leb128_unsigned(self.length as _)?;
         for (vox_pos, vox) in &self.voxels {
             writer.write_leb128_signed(vox_pos.x as _)?;
             writer.write_leb128_signed(vox_pos.y as _)?;
@@ -128,6 +145,10 @@ where
     pub fn read_leb128_signed(&mut self) -> Result<i64> {
         Ok(leb128::read::signed(&mut self.cursor)?)
     }
+
+    pub fn read_leb128_unsigned(&mut self) -> Result<u64> {
+        Ok(leb128::read::unsigned(&mut self.cursor)?)
+    }
 }
 
 impl<Cursor> Serializer<Cursor>
@@ -151,6 +172,11 @@ where
 
     pub fn write_leb128_signed(&mut self, value: i64) -> Result<()> {
         leb128::write::signed(&mut self.cursor, value)?;
+        Ok(())
+    }
+
+    pub fn write_leb128_unsigned(&mut self, value: u64) -> Result<()> {
+        leb128::write::unsigned(&mut self.cursor, value)?;
         Ok(())
     }
 }
