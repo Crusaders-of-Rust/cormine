@@ -134,7 +134,9 @@ pub fn generate_chunks(
 }
 
 pub fn block_at_position(pos: VoxelPosition, noise: &NoiseMap) -> VoxelKind {
-    let noise_val = noise.get_value(pos.x() as usize, pos.z() as usize);
+    let normalized_x = pos.x() + (noise.size().0 / 2) as i32;
+    let normalized_z = pos.z() + (noise.size().1 / 2) as i32;
+    let noise_val = noise.get_value(normalized_x as usize, normalized_z as usize);
     let mut height = (noise_val.powf(2.0) * MAX_HEIGHT as f64) as usize;
     let y = pos.y() as usize;
     height += 64;
