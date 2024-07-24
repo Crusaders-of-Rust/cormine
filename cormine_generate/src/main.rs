@@ -178,7 +178,7 @@ fn challenge1() -> (&'static str, WorldData) {
     };
 
     let start = (0, 90, 8);
-    let (end_x, end_y) = add_string_to_world("corCTF{wallhacks}", start, &mut wd, VoxelKind::Stone);
+    let (end_x, end_y) = add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone);
 
     // To avoid bugs with headglitching, make box extra thick
     for box_sz in [10, 11, 12] {
