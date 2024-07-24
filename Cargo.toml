@@ -29,3 +29,6 @@ lto = "thin"
 default = ["wireframe", "debug"]
 wireframe = []
 debug = ["bevy_egui"]
+
+[workspace]
+members = ["cormine_generate"]
