@@ -57,12 +57,15 @@ fn add_string_to_world(
     start: IVec3,
     world: &mut SaveData,
     block: VoxelKind,
+    replace: Option<VoxelKind>,
 ) -> IVec2 {
     let (positions, max) = rasterize(string, 9.0);
     for pos in positions {
-        world
-            .voxels
-            .push((start + pos.as_ivec2().extend(start.z), block));
+        let vpos = start + pos.as_ivec2().extend(start.z);
+        world.voxels.push((vpos, block));
+        if let Some(replace) = replace {
+            world.voxels.push((vpos, replace));
+        }
     }
     start.truncate() + max.as_ivec2()
 }
@@ -104,8 +107,8 @@ fn challenge1() -> (&'static str, SaveData) {
     };
 
     let start = ivec3(0, 90, 8);
-    let end =
-        add_string_to_world("corctf{w4llh4cks}", start, &mut wd, VoxelKind::Stone).extend(start.z);
+    let end = add_string_to_world("corctf{w4llh4cks}", start, &mut wd, VoxelKind::Stone, None)
+        .extend(start.z);
 
     // To avoid bugs with headglitching, make box extra thick
     for box_sz in [10, 11, 12] {
@@ -127,8 +130,14 @@ fn challenge2() -> (&'static str, SaveData) {
     };
 
     let start = ivec3(0, 90, 8);
-    let end =
-        add_string_to_world("corctf{0v3rwr1t3}", start, &mut wd, VoxelKind::Snow).extend(start.z);
+    let end = add_string_to_world(
+        "corctf{0v3rwr1t3}",
+        start,
+        &mut wd,
+        VoxelKind::Snow,
+        Some(VoxelKind::Air),
+    )
+    .extend(start.z);
 
     let box_sz = 10;
     let box_start = start - box_sz;
