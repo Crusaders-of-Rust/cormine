@@ -24,6 +24,8 @@ opt-level = 3
 [profile.release]
 codegen-units = 1
 lto = "thin"
+strip = false
+panic = "abort"
 
 [features]
 default = ["wireframe", "debug"]
