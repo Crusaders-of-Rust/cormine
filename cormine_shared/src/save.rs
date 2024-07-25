@@ -62,7 +62,7 @@ impl SaveData {
             let x = x as i32 ^ rng.next_u32() as i32;
             let y = reader.read_leb128_signed()? as i32 ^ rng.next_u32() as i32;
             let z = reader.read_leb128_signed()? as i32 ^ rng.next_u32() as i32;
-            let kind = reader.read_byte().and_then(TryInto::try_into)?;
+            let kind = (reader.read_byte()? ^ rng.next_u32() as u8).try_into()?;
             voxels.push((ivec3(x, y, z), kind))
         }
         Ok(Self {
@@ -102,7 +102,7 @@ impl SaveData {
             writer.write_leb128_signed((vox_pos.x ^ rng.next_u32() as i32) as i64)?;
             writer.write_leb128_signed((vox_pos.y ^ rng.next_u32() as i32) as i64)?;
             writer.write_leb128_signed((vox_pos.z ^ rng.next_u32() as i32) as i64)?;
-            writer.write_byte(vox as u8)?;
+            writer.write_byte(vox as u8 ^ rng.next_u32() as u8)?;
         }
         Ok(())
     }
