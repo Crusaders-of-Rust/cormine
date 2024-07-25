@@ -1,3 +1,7 @@
+cargo-features = ["trim-paths"]
+
+# Comment out cargo-features and [profile.release.trim-paths] if you are building on stable
+
 [package]
 name = "cormine"
 version = "0.1.0"
@@ -26,6 +30,7 @@ codegen-units = 1
 lto = "thin"
 strip = false
 panic = "abort"
+trim-paths = "all"
 
 [features]
 default = ["wireframe", "debug"]
