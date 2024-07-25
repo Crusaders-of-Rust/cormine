@@ -104,8 +104,8 @@ fn challenge1() -> (&'static str, SaveData) {
     let name = "cormine1";
     let mut wd = SaveData {
         seed,
-        width: 16,
-        length: 8,
+        width: 18,
+        length: 10,
         voxels: Vec::new(),
     };
 
