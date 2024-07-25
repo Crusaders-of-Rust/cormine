@@ -6,7 +6,14 @@ use crate::voxel::{
     VoxelPosition,
 };
 
-use bevy::prelude::*;
+use bevy::{
+    math::{
+        ivec2,
+        ivec3,
+        vec3,
+    },
+    prelude::*,
+};
 use ndarray::{
     Array3,
     ArrayView3,
@@ -40,11 +47,11 @@ impl ChunkPosition {
     }
 
     pub fn as_vec3(&self) -> Vec3 {
-        Vec3::new(self.x() as _, 0.0, self.z() as _)
+        vec3(self.x() as _, 0.0, self.z() as _)
     }
 
     pub fn as_ivec3(&self) -> IVec3 {
-        IVec3::new(self.x() as _, 0, self.z() as _)
+        ivec3(self.x() as _, 0, self.z() as _)
     }
 
     // Calculate the 4 possible chunks neighbouring this one
@@ -72,7 +79,7 @@ impl From<VoxelPosition> for ChunkPosition {
             x: voxel.x(),
             y: voxel.z(),
         };
-        pos -= pos.rem_euclid(IVec2::new(CHUNK_SIZE as _, CHUNK_SIZE as _));
+        pos -= pos.rem_euclid(ivec2(CHUNK_SIZE as _, CHUNK_SIZE as _));
         Self(pos)
     }
 }

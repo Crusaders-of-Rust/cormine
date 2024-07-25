@@ -1,4 +1,6 @@
 use bevy::math::{
+    ivec3,
+    vec3,
     IVec3,
     Vec3,
 };
@@ -33,11 +35,11 @@ impl VoxelPosition {
     }
 
     pub fn as_ivec3(&self) -> IVec3 {
-        IVec3::new(self.x(), self.y(), self.z())
+        ivec3(self.x(), self.y(), self.z())
     }
 
     pub fn as_vec3(&self) -> Vec3 {
-        Vec3::new(self.x() as _, self.y() as _, self.z() as _)
+        vec3(self.x() as _, self.y() as _, self.z() as _)
     }
 
     // Calculate the 4 possible chunks neighbouring this one
@@ -108,7 +110,7 @@ impl LocalVoxelPosition {
     }
 
     pub fn as_ivec3(&self) -> IVec3 {
-        IVec3::new(self.x as _, self.y as _, self.z as _)
+        ivec3(self.x as _, self.y as _, self.z as _)
     }
 }
 

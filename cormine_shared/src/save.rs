@@ -10,7 +10,10 @@ use std::{
 };
 
 use anyhow::Result;
-use glam::IVec3;
+use glam::{
+    ivec3,
+    IVec3,
+};
 
 pub struct SaveData {
     pub seed: u32,
@@ -50,7 +53,7 @@ impl SaveData {
             let y = reader.read_leb128_signed()?;
             let z = reader.read_leb128_signed()?;
             let kind = reader.read_byte().and_then(TryInto::try_into)?;
-            voxels.push((IVec3::new(x as _, y as _, z as _), kind))
+            voxels.push((ivec3(x as _, y as _, z as _), kind))
         }
         Ok(Self {
             seed,

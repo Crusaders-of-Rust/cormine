@@ -12,7 +12,10 @@ use crate::{
     },
     world::World,
 };
-use bevy::prelude::*;
+use bevy::{
+    math::vec3,
+    prelude::*,
+};
 
 const GRAVITY: f32 = 40.0;
 const JUMP_VELOCITY: f32 = 10.0;
@@ -36,7 +39,7 @@ pub fn player_move(
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
     let get_voxel = |player_pos: Vec3, offset: Vec3| -> Option<&Voxel> {
-        let check_pos = player_pos + offset + Vec3::new(0.0, -PLAYER_HEIGHT, 0.0);
+        let check_pos = player_pos + offset + vec3(0.0, -PLAYER_HEIGHT, 0.0);
         let voxel_pos = VoxelPosition::new(check_pos.as_ivec3());
 
         let chunk_ent = world.chunk_containing(voxel_pos)?;
@@ -125,7 +128,7 @@ pub fn player_move(
     }
 
     let mut water_overlay = color_overlay.single_mut();
-    let is_head_in_water = get_voxel(*pos, Vec3::new(0.0, PLAYER_HEIGHT, 0.0))
+    let is_head_in_water = get_voxel(*pos, vec3(0.0, PLAYER_HEIGHT, 0.0))
         .map_or(false, |voxel| matches!(voxel.kind, VoxelKind::Water));
     const WATER_OVERLAY_COLOR: Color = Color::linear_rgba(0.0, 0.0, 0.5, 0.5);
     if is_head_in_water {

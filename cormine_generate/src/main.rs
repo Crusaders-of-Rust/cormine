@@ -22,6 +22,8 @@ use fontdue::{
     FontSettings,
 };
 use glam::{
+    ivec3,
+    uvec2,
     IVec2,
     IVec3,
     UVec2,
@@ -47,14 +49,14 @@ fn rasterize(string: &str, size: f32) -> (Vec<UVec2>, UVec2) {
             let y = glyph.height as u32 - y;
             for (xb, x) in (x_start..x_start + glyph.width as u32).enumerate() {
                 if bitmap[xb + yb * glyph.width] > 127 {
-                    positions.push(UVec2::new(x, y));
+                    positions.push(uvec2(x, y));
                     max_x = u32::max(x, max_x);
                     max_y = u32::max(y, max_y);
                 }
             }
         }
     }
-    (positions, UVec2::new(max_x, max_y))
+    (positions, uvec2(max_x, max_y))
 }
 
 // Adds a string to the world and returns the maximum X and Y positions of it
@@ -92,7 +94,7 @@ fn add_box_to_world(
                         || z == start.z
                         || z == end.z)
                 {
-                    world.voxels.push((IVec3::new(x, y, z), block));
+                    world.voxels.push((ivec3(x, y, z), block));
                 }
             }
         }
@@ -109,7 +111,7 @@ fn challenge1() -> (&'static str, SaveData) {
         voxels: Vec::new(),
     };
 
-    let start = IVec3::new(0, 90, 8);
+    let start = ivec3(0, 90, 8);
     let end =
         add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone).extend(start.z);
 

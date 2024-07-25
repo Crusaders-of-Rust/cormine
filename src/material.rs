@@ -9,7 +9,10 @@ use bevy::{
         LinearRgba,
         Srgba,
     },
-    math::Vec3,
+    math::{
+        vec3,
+        Vec3,
+    },
     pbr::{
         Material,
         MaterialPipeline,
@@ -36,7 +39,7 @@ pub fn make_voxel_material(
     let img_handle = assets.load("images/blocks.png");
     let handle = materials.add(VoxelMaterial {
         light_color: Srgba::WHITE.into(),
-        light_dir: Vec3::new(1.0, 1.0, 1.0),
+        light_dir: vec3(1.0, 1.0, 1.0),
         selected_voxel: Vec3::ZERO,
         has_selected: 0,
         block_textures: img_handle.clone(),
