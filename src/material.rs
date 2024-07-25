@@ -36,7 +36,7 @@ pub fn make_voxel_material(
     mut materials: ResMut<Assets<VoxelMaterial>>,
     assets: Res<AssetServer>,
 ) {
-    let img_handle = assets.load("images/blocks.png");
+    let img_handle = assets.load("embedded://cormine/../assets/images/blocks.png");
     let handle = materials.add(VoxelMaterial {
         light_color: Srgba::WHITE.into(),
         light_dir: vec3(1.0, 1.0, 1.0),
@@ -91,10 +91,10 @@ pub struct VoxelMaterial {
 
 impl Material for VoxelMaterial {
     fn vertex_shader() -> ShaderRef {
-        "shaders/voxel.wgsl".into()
+        "embedded://cormine/../assets/shaders/voxel.wgsl".into()
     }
     fn fragment_shader() -> ShaderRef {
-        "shaders/voxel.wgsl".into()
+        "embedded://cormine/../assets/shaders/voxel.wgsl".into()
     }
     fn specialize(
         _: &MaterialPipeline<Self>,

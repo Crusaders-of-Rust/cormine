@@ -22,7 +22,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         ColorOverlay,
     ));
 
-    let crosshair_handle = asset_server.load("images/crosshair.png");
+    let crosshair_handle = asset_server.load("embedded://cormine/../assets/images/crosshair.png");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -41,7 +41,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             });
         });
 
-    let toolbar_handle = asset_server.load("images/toolbar.png");
+    let toolbar_handle = asset_server.load("embedded://cormine/../assets/images/toolbar.png");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -61,7 +61,7 @@ pub fn draw_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             });
         });
 
-    let selected_handle = asset_server.load("images/selected.png");
+    let selected_handle = asset_server.load("embedded://cormine/../assets/images/selected.png");
     commands
         .spawn((
             NodeBundle {

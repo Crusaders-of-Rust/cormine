@@ -28,6 +28,7 @@ mod save;
 
 use args::ArgumentsCommands;
 use bevy::{
+    asset::embedded_asset,
     ecs::{
         system::SystemState,
         world::CommandQueue,
@@ -72,6 +73,7 @@ use material::{
 fn main() {
     let args = argh::from_env::<args::Arguments>();
     let mut app = App::new();
+
     let mut default_plugins = DefaultPlugins.build();
     #[cfg(feature = "wireframe")]
     {
@@ -97,6 +99,13 @@ fn main() {
     });
 
     app.add_plugins(default_plugins);
+
+    embedded_asset!(app, "../assets/images/blocks.png");
+    embedded_asset!(app, "../assets/images/crosshair.png");
+    embedded_asset!(app, "../assets/images/toolbar.png");
+    embedded_asset!(app, "../assets/images/selected.png");
+    embedded_asset!(app, "../assets/shaders/voxel.wgsl");
+
     app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
     app.init_resource::<world::World>();
     app.init_resource::<SelectedVoxel>();
