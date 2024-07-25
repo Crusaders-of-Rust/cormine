@@ -21,13 +21,17 @@ use fontdue::{
     Font,
     FontSettings,
 };
-use glam::IVec3;
+use glam::{
+    IVec2,
+    IVec3,
+    UVec2,
+};
 
 const FONT_BYTES: &[u8] = include_bytes!("../pixeloid.ttf");
 static FONT: LazyLock<Font> =
     LazyLock::new(|| Font::from_bytes(FONT_BYTES, FontSettings::default()).unwrap());
 
-fn rasterize(string: &str, size: f32) -> (Vec<(u32, u32)>, (u32, u32)) {
+fn rasterize(string: &str, size: f32) -> (Vec<UVec2>, UVec2) {
     let mut layout = Layout::new(CoordinateSystem::PositiveYUp);
     layout.append(&[&*FONT], &TextStyle::new(string, size, 0));
     let mut positions = Vec::new();
@@ -43,14 +47,14 @@ fn rasterize(string: &str, size: f32) -> (Vec<(u32, u32)>, (u32, u32)) {
             let y = glyph.height as u32 - y;
             for (xb, x) in (x_start..x_start + glyph.width as u32).enumerate() {
                 if bitmap[xb + yb * glyph.width] > 127 {
-                    positions.push((x, y));
+                    positions.push(UVec2::new(x, y));
                     max_x = u32::max(x, max_x);
                     max_y = u32::max(y, max_y);
                 }
             }
         }
     }
-    (positions, (max_x, max_y))
+    (positions, UVec2::new(max_x, max_y))
 }
 
 // Adds a string to the world and returns the maximum X and Y positions of it
@@ -59,44 +63,34 @@ fn add_string_to_world(
     start: IVec3,
     world: &mut SaveData,
     block: VoxelKind,
-) -> (i32, i32) {
-    let (positions, (max_x, max_y)) = rasterize(string, 9.0);
-    for (x, y) in positions {
-        world.voxels.push((
-            IVec3::new(
-                x.overflowing_add_signed(start.x).0 as _,
-                y.overflowing_add_signed(start.y).0 as _,
-                start.z,
-            ),
-            block,
-        ));
+) -> IVec2 {
+    let (positions, max) = rasterize(string, 9.0);
+    for pos in positions {
+        world
+            .voxels
+            .push((start + pos.as_ivec2().extend(start.z), block));
     }
-    (
-        max_x.overflowing_add_signed(start.x).0 as _,
-        max_y.overflowing_add_signed(start.y).0 as _,
-    )
+    start.truncate() + max.as_ivec2()
 }
 
 fn add_box_to_world(
-    start: (i32, i32, i32),
-    end: (i32, i32, i32),
+    start: IVec3,
+    end: IVec3,
     world: &mut SaveData,
     block: VoxelKind,
     filled: bool,
 ) {
-    assert!(end.0 > start.0);
-    assert!(end.1 > start.1);
-    assert!(end.2 > start.2);
-    for x in start.0..=end.0 {
-        for y in start.1..=end.1 {
-            for z in start.2..=end.2 {
+    assert!(IVec3::cmpgt(end, start).all());
+    for x in start.x..=end.x {
+        for y in start.y..=end.y {
+            for z in start.z..=end.z {
                 if filled
-                    || (x == start.0
-                        || x == end.0
-                        || y == start.1
-                        || y == end.1
-                        || z == start.2
-                        || z == end.2)
+                    || (x == start.x
+                        || x == end.x
+                        || y == start.y
+                        || y == end.y
+                        || z == start.z
+                        || z == end.z)
                 {
                     world.voxels.push((IVec3::new(x, y, z), block));
                 }
@@ -116,12 +110,13 @@ fn challenge1() -> (&'static str, SaveData) {
     };
 
     let start = IVec3::new(0, 90, 8);
-    let (end_x, end_y) = add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone);
+    let end =
+        add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone).extend(start.z);
 
     // To avoid bugs with headglitching, make box extra thick
     for box_sz in [10, 11, 12] {
-        let box_start = (start.x - box_sz, start.y - box_sz, start.z - box_sz);
-        let box_end = (end_x + box_sz, end_y + box_sz, start.z + box_sz);
+        let box_start = start - box_sz;
+        let box_end = end + box_sz;
         add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Bedrock, false);
     }
     (name, wd)
