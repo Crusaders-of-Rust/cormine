@@ -105,7 +105,7 @@ fn challenge1() -> (&'static str, SaveData) {
 
     let start = ivec3(0, 90, 8);
     let end =
-        add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone).extend(start.z);
+        add_string_to_world("corctf{w4llh4cks}", start, &mut wd, VoxelKind::Stone).extend(start.z);
 
     // To avoid bugs with headglitching, make box extra thick
     for box_sz in [10, 11, 12] {
@@ -116,8 +116,29 @@ fn challenge1() -> (&'static str, SaveData) {
     (name, wd)
 }
 
+fn challenge2() -> (&'static str, SaveData) {
+    let seed = rand::random();
+    let name = "cormine2";
+    let mut wd = SaveData {
+        seed,
+        width: 18,
+        length: 10,
+        voxels: Vec::new(),
+    };
+
+    let start = ivec3(0, 90, 8);
+    let end =
+        add_string_to_world("corctf{0v3rwr1t3}", start, &mut wd, VoxelKind::Snow).extend(start.z);
+
+    let box_sz = 10;
+    let box_start = start - box_sz;
+    let box_end = end + box_sz;
+    add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Stone, true);
+    (name, wd)
+}
+
 fn main() {
-    for (name, world) in [challenge1].map(|f| f()) {
+    for (name, world) in [challenge1, challenge2].map(|f| f()) {
         world
             .to_file(format!("{name}.cms"), true)
             .unwrap_or_else(|e| panic!("serializing {name}: `{e:?}`"))
