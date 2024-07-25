@@ -14,6 +14,10 @@ use glam::{
     ivec3,
     IVec3,
 };
+use rand::{
+    RngCore,
+    SeedableRng,
+};
 
 pub struct SaveData {
     pub seed: u32,
@@ -46,14 +50,20 @@ impl SaveData {
         let width = reader.read_leb128_unsigned()? as _;
         let length = reader.read_leb128_unsigned()? as _;
         let mut voxels = Vec::new();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(seed as u64);
+
+        // 1. Cast read value to i32
+        // 2. Get next u32 rand value, cast to i32
+        // 3. Xor with read value and save
         loop {
             let Ok(x) = reader.read_leb128_signed() else {
                 break;
             };
-            let y = reader.read_leb128_signed()?;
-            let z = reader.read_leb128_signed()?;
+            let x = x as i32 ^ rng.next_u32() as i32;
+            let y = reader.read_leb128_signed()? as i32 ^ rng.next_u32() as i32;
+            let z = reader.read_leb128_signed()? as i32 ^ rng.next_u32() as i32;
             let kind = reader.read_byte().and_then(TryInto::try_into)?;
-            voxels.push((ivec3(x as _, y as _, z as _), kind))
+            voxels.push((ivec3(x, y, z), kind))
         }
         Ok(Self {
             seed,
@@ -83,10 +93,15 @@ impl SaveData {
         writer.write_u32(self.seed)?;
         writer.write_leb128_unsigned(self.width as _)?;
         writer.write_leb128_unsigned(self.length as _)?;
+        let mut rng = rand::rngs::StdRng::seed_from_u64(self.seed as u64);
+
+        // 1. Get next u32 rand value, cast to i32
+        // 2. xor with position
+        // 3. Cast xor'd value to i64 and write
         for &(vox_pos, vox) in &self.voxels {
-            writer.write_leb128_signed(vox_pos.x as _)?;
-            writer.write_leb128_signed(vox_pos.y as _)?;
-            writer.write_leb128_signed(vox_pos.z as _)?;
+            writer.write_leb128_signed((vox_pos.x ^ rng.next_u32() as i32) as i64)?;
+            writer.write_leb128_signed((vox_pos.y ^ rng.next_u32() as i32) as i64)?;
+            writer.write_leb128_signed((vox_pos.z ^ rng.next_u32() as i32) as i64)?;
             writer.write_byte(vox as u8)?;
         }
         Ok(())

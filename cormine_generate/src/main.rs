@@ -1,15 +1,7 @@
-use std::{
-    fs::OpenOptions,
-    path::Path,
-    sync::LazyLock,
-};
+use std::sync::LazyLock;
 
-use anyhow::Result;
 use cormine_shared::{
-    save::{
-        SaveData,
-        Serializer,
-    },
+    save::SaveData,
     voxel::VoxelKind,
 };
 use fontdue::{
@@ -124,28 +116,10 @@ fn challenge1() -> (&'static str, SaveData) {
     (name, wd)
 }
 
-fn save_data_to_file<P: AsRef<Path>>(data: &SaveData, path: P) -> Result<()> {
-    let f = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(path)?;
-    let mut ser = Serializer::new(f);
-    ser.write_u32(data.seed)?;
-    ser.write_leb128_unsigned(data.width as _)?;
-    ser.write_leb128_unsigned(data.length as _)?;
-    for &(pos, vox) in data.voxels.iter() {
-        ser.write_leb128_signed(pos.x as _)?;
-        ser.write_leb128_signed(pos.y as _)?;
-        ser.write_leb128_signed(pos.z as _)?;
-        ser.write_byte(vox as u8)?;
-    }
-    Ok(())
-}
-
 fn main() {
     for (name, world) in [challenge1].map(|f| f()) {
-        save_data_to_file(&world, format!("{name}.cms"))
+        world
+            .to_file(format!("{name}.cms"), true)
             .unwrap_or_else(|e| panic!("serializing {name}: `{e:?}`"))
     }
 }
