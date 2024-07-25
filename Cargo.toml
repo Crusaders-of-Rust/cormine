@@ -11,9 +11,9 @@ ndarray = "0.15"
 noise = "0.9.0"
 rand = "0.8.5"
 argh = "0.1.12"
-anyhow = "1.0.86"
 leb128 = "0.2.5"
 bit_field = "0.10.2"
+cormine_shared = { version = "0.1.0", path = "cormine_shared" }
 
 [profile.dev]
 opt-level = 1
@@ -31,4 +31,4 @@ wireframe = []
 debug = ["bevy_egui"]
 
 [workspace]
-members = ["cormine_generate"]
+members = ["cormine_generate", "cormine_shared"]

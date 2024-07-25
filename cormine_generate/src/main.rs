@@ -1,17 +1,17 @@
 use std::{
-    collections::HashMap,
-    fs::{
-        File,
-        OpenOptions,
-    },
-    io::{
-        Result,
-        Write,
-    },
+    fs::OpenOptions,
     path::Path,
     sync::LazyLock,
 };
 
+use anyhow::Result;
+use cormine_shared::{
+    save::{
+        SaveData,
+        Serializer,
+    },
+    voxel::VoxelKind,
+};
 use fontdue::{
     layout::{
         CoordinateSystem,
@@ -21,79 +21,7 @@ use fontdue::{
     Font,
     FontSettings,
 };
-
-struct Serializer<'file> {
-    file: &'file mut File,
-}
-
-impl<'file> Serializer<'file> {
-    pub fn write_byte(&mut self, byte: u8) -> Result<()> {
-        let byte = [byte];
-        self.file.write_all(&byte)?;
-        Ok(())
-    }
-
-    pub fn write_bytes<const N: usize>(&mut self, bytes: [u8; N]) -> Result<()> {
-        self.file.write_all(&bytes)?;
-        Ok(())
-    }
-
-    pub fn write_u32(&mut self, val: u32) -> Result<()> {
-        self.write_bytes(u32::to_le_bytes(val))
-    }
-
-    pub fn write_leb128_signed(&mut self, value: i64) -> Result<()> {
-        leb128::write::signed(&mut self.file, value)?;
-        Ok(())
-    }
-
-    pub fn write_leb128_unsigned(&mut self, value: u64) -> Result<()> {
-        leb128::write::unsigned(&mut self.file, value)?;
-        Ok(())
-    }
-}
-
-#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(u8)]
-pub enum VoxelKind {
-    #[default]
-    Air = 255,
-    Stone = 0,
-    Grass = 1,
-    Water = 2,
-    Snow = 3,
-    Dirt = 4,
-    Bedrock = 5,
-}
-
-#[derive(Debug)]
-struct WorldData {
-    seed: u32,
-    width: usize,
-    length: usize,
-    blocks: HashMap<(i32, i32, i32), VoxelKind>,
-}
-
-impl WorldData {
-    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
-        let mut f = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path)?;
-        let mut ser = Serializer { file: &mut f };
-        ser.write_u32(self.seed)?;
-        ser.write_leb128_unsigned(self.width as _)?;
-        ser.write_leb128_unsigned(self.length as _)?;
-        for (&(x, y, z), &vox) in self.blocks.iter() {
-            ser.write_leb128_signed(x as _)?;
-            ser.write_leb128_signed(y as _)?;
-            ser.write_leb128_signed(z as _)?;
-            ser.write_byte(vox as u8)?;
-        }
-        Ok(())
-    }
-}
+use glam::IVec3;
 
 const FONT_BYTES: &[u8] = include_bytes!("../pixeloid.ttf");
 static FONT: LazyLock<Font> =
@@ -128,31 +56,31 @@ fn rasterize(string: &str, size: f32) -> (Vec<(u32, u32)>, (u32, u32)) {
 // Adds a string to the world and returns the maximum X and Y positions of it
 fn add_string_to_world(
     string: &str,
-    (start_x, start_y, start_z): (i32, i32, i32),
-    world: &mut WorldData,
+    start: IVec3,
+    world: &mut SaveData,
     block: VoxelKind,
 ) -> (i32, i32) {
     let (positions, (max_x, max_y)) = rasterize(string, 9.0);
     for (x, y) in positions {
-        world.blocks.insert(
-            (
-                x.overflowing_add_signed(start_x).0 as _,
-                y.overflowing_add_signed(start_y).0 as _,
-                start_z,
+        world.voxels.push((
+            IVec3::new(
+                x.overflowing_add_signed(start.x).0 as _,
+                y.overflowing_add_signed(start.y).0 as _,
+                start.z,
             ),
             block,
-        );
+        ));
     }
     (
-        max_x.overflowing_add_signed(start_x).0 as _,
-        max_y.overflowing_add_signed(start_y).0 as _,
+        max_x.overflowing_add_signed(start.x).0 as _,
+        max_y.overflowing_add_signed(start.y).0 as _,
     )
 }
 
 fn add_box_to_world(
     start: (i32, i32, i32),
     end: (i32, i32, i32),
-    world: &mut WorldData,
+    world: &mut SaveData,
     block: VoxelKind,
     filled: bool,
 ) {
@@ -170,40 +98,57 @@ fn add_box_to_world(
                         || z == start.2
                         || z == end.2)
                 {
-                    world.blocks.insert((x, y, z), block);
+                    world.voxels.push((IVec3::new(x, y, z), block));
                 }
             }
         }
     }
 }
 
-fn challenge1() -> (&'static str, WorldData) {
+fn challenge1() -> (&'static str, SaveData) {
     let seed = rand::random();
     let name = "cormine1";
-    let array = HashMap::new();
-    let mut wd = WorldData {
+    let mut wd = SaveData {
         seed,
         width: 16,
         length: 8,
-        blocks: array,
+        voxels: Vec::new(),
     };
 
-    let start = (0, 90, 8);
+    let start = IVec3::new(0, 90, 8);
     let (end_x, end_y) = add_string_to_world("corCTF{w4llh4cks}", start, &mut wd, VoxelKind::Stone);
 
     // To avoid bugs with headglitching, make box extra thick
     for box_sz in [10, 11, 12] {
-        let box_start = (start.0 - box_sz, start.1 - box_sz, start.2 - box_sz);
-        let box_end = (end_x + box_sz, end_y + box_sz, start.2 + box_sz);
+        let box_start = (start.x - box_sz, start.y - box_sz, start.z - box_sz);
+        let box_end = (end_x + box_sz, end_y + box_sz, start.z + box_sz);
         add_box_to_world(box_start, box_end, &mut wd, VoxelKind::Bedrock, false);
     }
     (name, wd)
 }
 
+fn save_data_to_file<P: AsRef<Path>>(data: &SaveData, path: P) -> Result<()> {
+    let f = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)?;
+    let mut ser = Serializer::new(f);
+    ser.write_u32(data.seed)?;
+    ser.write_leb128_unsigned(data.width as _)?;
+    ser.write_leb128_unsigned(data.length as _)?;
+    for &(pos, vox) in data.voxels.iter() {
+        ser.write_leb128_signed(pos.x as _)?;
+        ser.write_leb128_signed(pos.y as _)?;
+        ser.write_leb128_signed(pos.z as _)?;
+        ser.write_byte(vox as u8)?;
+    }
+    Ok(())
+}
+
 fn main() {
     for (name, world) in [challenge1].map(|f| f()) {
-        world
-            .save_to_file(format!("{name}.cms"))
+        save_data_to_file(&world, format!("{name}.cms"))
             .unwrap_or_else(|e| panic!("serializing {name}: `{e:?}`"))
     }
 }

@@ -1591,11 +1591,11 @@ dependencies = [
 name = "cormine"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "argh",
  "bevy",
  "bevy_egui",
  "bit_field",
+ "cormine_shared",
  "leb128",
  "log",
  "ndarray",
@@ -1607,9 +1607,21 @@ dependencies = [
 name = "cormine_generate"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "cormine_shared",
  "fontdue",
+ "glam",
  "leb128",
  "rand",
+]
+
+[[package]]
+name = "cormine_shared"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "glam",
+ "leb128",
 ]
 
 [[package]]

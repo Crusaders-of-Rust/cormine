@@ -6,7 +6,7 @@ use crate::{
         ChunkPosition,
     },
     input::SaveEvent,
-    save::SaveData,
+    save,
     voxel::{
         Voxel,
         VoxelPosition,
@@ -88,7 +88,7 @@ pub fn process_save_events(
     if ev_save.read().next().is_none() {
         return;
     }
-    let save = SaveData::from_world(query, &world);
+    let save = save::from_world(query, &world);
     save.to_file("game.cms", true).unwrap();
     info!("Saved to `game.cms`");
 }
