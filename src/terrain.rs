@@ -109,6 +109,7 @@ pub fn generate_chunks(
         rng.gen()
     });
     world.set_seed(seed);
+    world.set_dimensions((options.width, options.length));
     let chunk_count_x = options.width as isize / 2;
     let chunk_count_z = options.length as isize / 2;
     let noise_map = generate_noise_map(1024, 1024, seed);
