@@ -55,11 +55,12 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
 
     /// The indices into [`VERTICES`] making up each face of the cube, as
     /// well as the direction of the face
+    // These are in a weird order just to make a quick fix to AO
     const FACES: [([usize; 4], IVec3); 6] = [
-        ([0, 1, 2, 3], IVec3::Z),     // front
-        ([5, 4, 7, 6], IVec3::NEG_Z), // back
-        ([4, 0, 3, 7], IVec3::NEG_X), // left
-        ([1, 5, 6, 2], IVec3::X),     // right
+        ([1, 2, 3, 0], IVec3::NEG_Z), // front
+        ([4, 7, 6, 5], IVec3::Z),     // back
+        ([0, 3, 7, 4], IVec3::NEG_X), // left
+        ([5, 6, 2, 1], IVec3::X),     // right
         ([4, 5, 1, 0], IVec3::NEG_Y), // bottom
         ([3, 2, 6, 7], IVec3::Y),     // top
     ];
@@ -73,14 +74,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a
     /// chunk boundary
     fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: IVec3) -> [Voxel; 6] {
-        [
-            get_adjacent_voxel(map, pos, IVec3::NEG_Z),
-            get_adjacent_voxel(map, pos, IVec3::Z),
-            get_adjacent_voxel(map, pos, IVec3::NEG_X),
-            get_adjacent_voxel(map, pos, IVec3::X),
-            get_adjacent_voxel(map, pos, IVec3::NEG_Y),
-            get_adjacent_voxel(map, pos, IVec3::Y),
-        ]
+        FACES.map(|(_, direction)| get_adjacent_voxel(map, pos, direction))
     }
 
     let mut vertices = Vec::new();
@@ -192,6 +186,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
             };
 
             let mut indices = [2, 1, 0, 3, 2, 0];
+            // Fix anisotropy
             if ao_vals[0] + ao_vals[2] < ao_vals[1] + ao_vals[3] {
                 indices[0] = 3;
                 indices[5] = 1;
