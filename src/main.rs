@@ -11,6 +11,9 @@ mod voxel;
 /// Debugging UI features
 mod debug;
 
+#[cfg(feature = "renderdoc")]
+mod renderdoc;
+
 mod terrain;
 /// Keeps track of the whole world of chunks and voxels
 mod world;
@@ -127,6 +130,11 @@ fn main() {
     #[cfg(feature = "wireframe")]
     {
         app.add_plugins(WireframePlugin);
+    }
+
+    #[cfg(feature = "renderdoc")]
+    {
+        app.add_plugins(renderdoc::RenderDocPlugin);
     }
 
     app.add_systems(
