@@ -5,7 +5,7 @@ use bevy::prelude::Resource;
 #[derive(FromArgs)]
 pub struct Arguments {
     #[argh(subcommand)]
-    pub commands: ArgumentsCommands,
+    pub commands: Option<ArgumentsCommands>,
 }
 
 #[derive(FromArgs)]
@@ -13,6 +13,12 @@ pub struct Arguments {
 pub enum ArgumentsCommands {
     Generate(ArgumentsGenerate),
     Load(ArgumentsLoad),
+}
+
+impl Default for ArgumentsCommands {
+    fn default() -> Self {
+        ArgumentsCommands::Generate(ArgumentsGenerate::default())
+    }
 }
 
 /// Generate a new world
@@ -28,6 +34,16 @@ pub struct ArgumentsGenerate {
     /// length of the world in chunks
     #[argh(option, default = "16")]
     pub length: usize,
+}
+
+impl Default for ArgumentsGenerate {
+    fn default() -> Self {
+        Self {
+            seed: None,
+            width: 16,
+            length: 16,
+        }
+    }
 }
 
 /// Load an existing save file

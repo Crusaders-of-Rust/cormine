@@ -116,7 +116,8 @@ fn main() {
     app.init_resource::<input::InputState>();
     app.init_resource::<input::QuitCounter>();
 
-    match args.commands {
+    let subcommand = args.commands.unwrap_or_default();
+    match subcommand {
         ArgumentsCommands::Generate(generate) => {
             app.add_systems(Startup, terrain::generate_chunks)
                 .insert_resource(generate);
