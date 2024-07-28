@@ -95,7 +95,11 @@ fn main() {
 
     default_plugins = default_plugins.set(WindowPlugin {
         primary_window: Some(Window {
-            present_mode: PresentMode::AutoNoVsync,
+            present_mode: if args.disable_vsync {
+                PresentMode::AutoNoVsync
+            } else {
+                PresentMode::AutoVsync
+            },
             ..default()
         }),
         ..default()

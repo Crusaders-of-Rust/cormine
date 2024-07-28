@@ -4,6 +4,10 @@ use bevy::prelude::Resource;
 /// CoRmine.
 #[derive(FromArgs)]
 pub struct Arguments {
+    /// disable vsync
+    #[argh(switch)]
+    pub disable_vsync: bool,
+
     #[argh(subcommand)]
     pub commands: Option<ArgumentsCommands>,
 }
