@@ -41,4 +41,4 @@ debug = ["bevy_egui"]
 
 
 [workspace]
-members = ["cormine_generate", "cormine_shared"]
+members = ["cormine_shared"]
