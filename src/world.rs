@@ -1,5 +1,3 @@
-use std::sync::OnceLock;
-
 use crate::{
     chunk::{
         Chunk,
@@ -18,7 +16,7 @@ use bevy::{
 
 #[derive(Default, Resource)]
 pub struct World {
-    seed: OnceLock<u32>,
+    pub seed: u32,
     chunk_map: HashMap<ChunkPosition, Entity>,
 }
 
@@ -48,16 +46,6 @@ impl World {
         Some(chunk.voxel(local_coord))
     }
 
-    pub fn set_seed(&mut self, seed: u32) {
-        self.seed
-            .set(seed)
-            .expect("world seed should only be set once")
-    }
-
-    pub fn seed(&self) -> u32 {
-        *self.seed.get().expect("accessing world seed before set")
-    }
-
     /// Iterate over each chunk entity and it's position
     pub fn iter(&self) -> impl Iterator<Item = (ChunkPosition, Entity)> + '_ {
         self.chunk_map.iter().map(|(p, e)| (*p, *e))
@@ -65,7 +53,7 @@ impl World {
 }
 
 pub fn process_save_events(query: Query<&Chunk>, world: Res<World>) {
-    let save = save::from_world(query, &world);
-    save.to_file("game.cms", true).unwrap();
+    let save = save::SaveData::from_world(query, &world);
+    save.to_file("game.cms", true);
     info!("Saved to `game.cms`");
 }

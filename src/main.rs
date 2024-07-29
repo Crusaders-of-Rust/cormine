@@ -29,7 +29,6 @@ mod ui;
 mod player;
 mod save;
 
-use args::ArgumentsCommands;
 use bevy::{
     asset::embedded_asset,
     ecs::{
@@ -70,6 +69,10 @@ use bevy::render::{
 use material::{
     VoxelMaterial,
     VoxelMaterialResource,
+};
+use rand::{
+    thread_rng,
+    Rng,
 };
 
 fn main() {
@@ -119,17 +122,23 @@ fn main() {
     app.init_resource::<input::InputState>();
     app.init_resource::<input::QuitCounter>();
 
-    let subcommand = args.commands.unwrap_or_default();
-    match subcommand {
-        ArgumentsCommands::Generate(generate) => {
-            app.add_systems(Startup, terrain::generate_chunks)
-                .insert_resource(generate);
+    app.add_systems(Startup, terrain::generate_chunks);
+
+    if let Some(save) = &args.save_file {
+        app.insert_resource(save::SaveData::from_file(save));
+    }
+
+    let mut world = world::World::default();
+    if let Some(seed) = args.seed {
+        if args.save_file.is_some() {
+            error!("Both `seed` and `load` are set");
+            return;
         }
-        ArgumentsCommands::Load(load) => {
-            app.add_systems(Startup, terrain::load_chunks)
-                .insert_resource(load);
-        }
-    };
+        world.seed = seed
+    } else {
+        world.seed = thread_rng().gen();
+    }
+    app.insert_resource(world);
 
     #[cfg(feature = "wireframe")]
     {

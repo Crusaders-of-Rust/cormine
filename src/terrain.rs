@@ -1,8 +1,18 @@
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-};
+use std::cmp::Ordering;
 
+use crate::{
+    chunk::{
+        Chunk,
+        ChunkPosition,
+        CHUNK_SIZE,
+        MAX_HEIGHT,
+    },
+    voxel::{
+        LocalVoxelPosition,
+        VoxelKind,
+        VoxelPosition,
+    },
+};
 use bevy::prelude::*;
 use noise::{
     utils::{
@@ -13,29 +23,6 @@ use noise::{
     BasicMulti,
     Perlin,
     ScalePoint,
-};
-use rand::{
-    thread_rng,
-    Rng,
-};
-
-use crate::{
-    args::{
-        ArgumentsGenerate,
-        ArgumentsLoad,
-    },
-    chunk::{
-        Chunk,
-        ChunkPosition,
-        CHUNK_SIZE,
-        MAX_HEIGHT,
-    },
-    save::SaveData,
-    voxel::{
-        LocalVoxelPosition,
-        VoxelKind,
-        VoxelPosition,
-    },
 };
 
 pub fn generate_noise_map(width: usize, height: usize, seed: u32) -> NoiseMap {
@@ -99,20 +86,10 @@ pub fn spiral(max_x: isize, max_y: isize) -> impl Iterator<Item = (isize, isize)
     })
 }
 
-pub fn generate_chunks(
-    mut commands: Commands,
-    mut world: ResMut<crate::world::World>,
-    options: Res<ArgumentsGenerate>,
-) {
-    let seed = options.seed.unwrap_or_else(|| {
-        let mut rng = thread_rng();
-        rng.gen()
-    });
-    world.set_seed(seed);
-
+pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::World>) {
     let chunk_count_x = 8;
     let chunk_count_z = 8;
-    let noise_map = generate_noise_map(1024, 1024, seed);
+    let noise_map = generate_noise_map(1024, 1024, world.seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
         let chunk_pos = ChunkPosition::new(
@@ -159,48 +136,5 @@ pub fn block_at_position(pos: VoxelPosition, noise: &NoiseMap) -> VoxelKind {
             Ordering::Equal => ground_height_to_voxel(height, true),
             Ordering::Greater => VoxelKind::Air,
         }
-    }
-}
-
-pub fn load_chunks(
-    mut commands: Commands,
-    mut world: ResMut<crate::world::World>,
-    options: Res<ArgumentsLoad>,
-) {
-    let save = SaveData::from_file(&options.path).unwrap();
-    let changes = save
-        .voxels
-        .iter()
-        .map(|(pos, vox)| (*pos, *vox))
-        .collect::<HashMap<_, _>>();
-    let seed = save.seed;
-    world.set_seed(seed);
-
-    let chunk_count_x = 8;
-    let chunk_count_z = 8;
-    let noise_map = generate_noise_map(1024, 1024, seed);
-
-    for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
-        let chunk_pos = ChunkPosition::new(
-            (chunk_x * CHUNK_SIZE as isize) as i32,
-            (chunk_z * CHUNK_SIZE as isize) as i32,
-        );
-        let mut chunk = Chunk::new().with_position(chunk_pos);
-
-        for x in 0..CHUNK_SIZE {
-            for y in 0..MAX_HEIGHT {
-                for z in 0..CHUNK_SIZE {
-                    let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                    let global_pos = &chunk_pos + local_pos;
-                    let voxel_kind = if let Some(&change) = changes.get(&global_pos.as_ivec3()) {
-                        change
-                    } else {
-                        block_at_position(global_pos, &noise_map)
-                    };
-                    chunk.voxel_mut(local_pos).kind = voxel_kind;
-                }
-            }
-        }
-        world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
     }
 }
