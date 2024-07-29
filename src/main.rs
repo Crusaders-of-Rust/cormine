@@ -75,6 +75,11 @@ use rand::{
     Rng,
 };
 
+#[derive(Resource)]
+struct Settings {
+    load_distance: usize,
+}
+
 fn main() {
     let args = argh::from_env::<args::Arguments>();
     let mut app = App::new();
@@ -120,6 +125,9 @@ fn main() {
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
     app.init_resource::<input::QuitCounter>();
+    app.insert_resource(Settings {
+        load_distance: args.load_distance,
+    });
 
     app.add_systems(Update, terrain::generate_chunks);
 

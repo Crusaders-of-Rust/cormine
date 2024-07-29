@@ -13,4 +13,7 @@ pub struct Arguments {
     /// world seed to use
     #[argh(option)]
     pub seed: Option<u32>,
+    /// radius in which to render chunks
+    #[argh(option, default = "16")]
+    pub load_distance: usize,
 }

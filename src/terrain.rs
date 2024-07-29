@@ -92,13 +92,13 @@ pub fn spiral(max_x: isize, max_y: isize) -> impl Iterator<Item = (isize, isize)
 pub fn generate_chunks(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
+    settings: Res<crate::Settings>,
     player: Query<&Transform, With<Camera>>,
 ) {
     let pos: ChunkPosition = player.single().translation.as_ivec3().into();
-    let chunk_count_x = 8;
-    let chunk_count_z = 8;
+    let radius = (settings.load_distance as isize) / 2;
 
-    for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
+    for (chunk_x, chunk_z) in spiral(radius, radius) {
         let chunk_pos = &pos
             + ivec2(
                 (chunk_x * CHUNK_SIZE as isize) as i32,
