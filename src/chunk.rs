@@ -28,7 +28,7 @@ pub const MAX_HEIGHT: usize = 256;
 const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, MAX_HEIGHT, CHUNK_SIZE);
 
 /// X and Z positions of a chunk. Will always be multiples of [`CHUNK_SIZE`]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub struct ChunkPosition(IVec2);
 
 impl ChunkPosition {
@@ -132,26 +132,15 @@ impl NeighbouringChunks {
 }
 
 #[derive(Component, Clone)]
-pub struct Chunk {
+pub struct ChunkVoxels {
     voxels: Array3<Voxel>,
-    position: ChunkPosition,
 }
 
-impl Chunk {
+impl ChunkVoxels {
     pub fn new() -> Self {
         Self {
             voxels: Array3::from_elem(CHUNK_SHAPE, Voxel::default()),
-            position: default(),
         }
-    }
-
-    pub fn position(&self) -> ChunkPosition {
-        self.position
-    }
-
-    /// Set the position of the (0, 0, 0) voxel
-    pub fn with_position(self, position: ChunkPosition) -> Self {
-        Self { position, ..self }
     }
 
     pub fn array(&self) -> &Array3<Voxel> {
@@ -163,16 +152,19 @@ impl Chunk {
         self.voxels.indexed_iter()
     }
 
-    /// Iterate over voxels, returning their index as a [`LocalVoxelPosition`]
+    /// Iterate over voxels, returning their [`LocalVoxelPosition`]
     pub fn iter_local_pos(&self) -> impl Iterator<Item = (LocalVoxelPosition, &Voxel)> {
         self.iter()
             .map(|((x, y, z), vox)| (LocalVoxelPosition::new(x as _, y as _, z as _), vox))
     }
 
-    /// Iterate over voxels, returning their index as a [`VoxelPosition`]
-    pub fn iter_pos(&self) -> impl Iterator<Item = (VoxelPosition, &Voxel)> {
+    /// Iterate over voxels, returning their [`VoxelPosition`]
+    pub fn iter_world_pos(
+        &self,
+        chunk_pos: ChunkPosition,
+    ) -> impl Iterator<Item = (VoxelPosition, &Voxel)> {
         self.iter_local_pos()
-            .map(|(lp, vox)| (&self.position + lp, vox))
+            .map(move |(pos, vox)| (&chunk_pos + pos, vox))
     }
 
     pub fn voxel(&self, position: LocalVoxelPosition) -> &Voxel {

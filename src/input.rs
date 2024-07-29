@@ -1,5 +1,5 @@
 use crate::{
-    chunk::Chunk,
+    chunk::ChunkVoxels,
     highlight::{
         SelectedVoxel,
         UpdateHighlightedEvent,
@@ -78,7 +78,7 @@ pub fn handle_lmb(
     buttons: Res<ButtonInput<MouseButton>>,
     selected: Res<SelectedVoxel>,
     world: Res<world::World>,
-    mut chunks: Query<&mut Chunk>,
+    mut chunks: Query<&mut ChunkVoxels>,
     mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
@@ -120,7 +120,7 @@ pub fn handle_rmb(
     buttons: Res<ButtonInput<MouseButton>>,
     selected: Res<SelectedVoxel>,
     world: Res<world::World>,
-    mut chunks: Query<&mut Chunk>,
+    mut chunks: Query<&mut ChunkVoxels>,
     input_state: Res<InputState>,
     mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {

@@ -1,7 +1,7 @@
 use crate::{
     chunk::{
-        Chunk,
         ChunkPosition,
+        ChunkVoxels,
     },
     save,
     voxel::{
@@ -48,7 +48,11 @@ impl World {
         self.chunk_map.get(&chunk_base).copied()
     }
 
-    pub fn voxel_at<'a>(&self, pos: VoxelPosition, chunks: &'a Query<&Chunk>) -> Option<&'a Voxel> {
+    pub fn voxel_at<'a>(
+        &self,
+        pos: VoxelPosition,
+        chunks: &'a Query<&ChunkVoxels>,
+    ) -> Option<&'a Voxel> {
         let chunk_base: ChunkPosition = pos.into();
         let chunk = self.chunk_map.get(&chunk_base).copied()?;
         let chunk = chunks.get(chunk).unwrap();
@@ -63,7 +67,7 @@ impl World {
     }
 }
 
-pub fn process_save_events(query: Query<&Chunk>, world: Res<World>) {
+pub fn process_save_events(query: Query<&ChunkVoxels>, world: Res<World>) {
     let save = save::SaveData::from_world(query, &world);
     save.to_file("game.cms", true);
     info!("Saved to `game.cms`");

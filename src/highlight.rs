@@ -3,7 +3,7 @@ use std::f32::EPSILON;
 use bevy::prelude::*;
 
 use crate::{
-    chunk::Chunk,
+    chunk::ChunkVoxels,
     material::{
         VoxelMaterial,
         VoxelMaterialResource,
@@ -65,7 +65,7 @@ pub fn update_selected_voxel(
     world: Res<world::World>,
     mut selected: ResMut<SelectedVoxel>,
     player: Query<&Transform, With<Camera>>,
-    chunks: Query<&Chunk>,
+    chunks: Query<&ChunkVoxels>,
     material_handle: Res<VoxelMaterialResource>,
     mut materials: ResMut<Assets<VoxelMaterial>>,
 ) {

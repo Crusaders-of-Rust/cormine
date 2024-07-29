@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use crate::{
     chunk::{
-        Chunk,
         ChunkPosition,
+        ChunkVoxels,
         CHUNK_SIZE,
         MAX_HEIGHT,
     },
@@ -107,19 +107,20 @@ pub fn generate_chunks(
         if world.chunk_at(chunk_pos).is_some() {
             continue;
         }
-        let mut chunk = Chunk::new().with_position(chunk_pos);
+        let mut voxels = ChunkVoxels::new();
 
         for x in 0..CHUNK_SIZE {
             for y in 0..MAX_HEIGHT {
                 for z in 0..CHUNK_SIZE {
                     let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
                     let global_pos = &chunk_pos + local_pos;
-                    chunk.voxel_mut(local_pos).kind =
+                    voxels.voxel_mut(local_pos).kind =
                         block_at_position(global_pos, &world.noise_map);
                 }
             }
         }
-        world.add_chunk(chunk_pos, commands.spawn((Name::new("Chunk"), chunk)).id());
+        let chunk = commands.spawn((Name::new("Chunk"), chunk_pos, voxels));
+        world.add_chunk(chunk_pos, chunk.id());
     }
 }
 

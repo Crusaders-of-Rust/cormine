@@ -43,7 +43,10 @@ use bevy::{
         Task,
     },
 };
-use chunk::Chunk;
+use chunk::{
+    ChunkPosition,
+    ChunkVoxels,
+};
 use mesh::HasMesh;
 
 use bevy::{
@@ -234,25 +237,21 @@ struct UpdateSync;
 fn queue_chunk_meshes(
     mut commands: Commands,
     dirty_chunks: Query<
-        (Entity, &Chunk, Option<&UpdateSync>),
+        (Entity, &ChunkPosition, &ChunkVoxels, Option<&UpdateSync>),
         (Without<HasMesh>, Without<ChunkMeshingTask>),
     >,
-    all_chunks: Query<&Chunk>,
+    all_chunks: Query<&ChunkVoxels>,
     world: Res<world::World>,
 ) {
     info_once!("Started queuing chunk tasks");
     let task_pool = AsyncComputeTaskPool::get();
     let sync_task_pool = ComputeTaskPool::get();
-    const BATCH_SIZE: usize = if cfg!(debug_assertions) { 64 } else { 256 };
-    for (ent, chunk, sync) in dirty_chunks
+    for (ent, chunk_pos, chunk, sync) in dirty_chunks
         .iter()
-        .sort_unstable_by_key::<&Chunk, _>(|chunk| chunk.position().spawn_distance())
-        .map(|(e, c, sync)| (e, c.clone(), sync.is_some()))
-        .take(BATCH_SIZE)
+        .map(|(e, pos, c, sync)| (e, *pos, c.clone(), sync.is_some()))
     {
         // get all adjacent chunks
         let mut adj_chunks = Vec::with_capacity(4);
-        let chunk_pos = chunk.position();
         for chunk_pos in chunk_pos.neighbouring_chunks().all() {
             let Some(chunk) = world
                 .chunk_at(chunk_pos)
@@ -260,11 +259,11 @@ fn queue_chunk_meshes(
             else {
                 continue;
             };
-            adj_chunks.push(chunk);
+            adj_chunks.push((chunk_pos, chunk));
         }
 
         let task = async move {
-            let mesh = mesh::from_chunk(chunk.clone(), adj_chunks);
+            let mesh = mesh::from_chunk((chunk_pos, chunk.clone()), adj_chunks);
             let mut cmd_queue = CommandQueue::default();
             cmd_queue.push(move |world: &mut World| {
                 let mut system_state =
@@ -276,7 +275,7 @@ fn queue_chunk_meshes(
                     .entity_mut(ent)
                     .insert(MaterialMeshBundle {
                         mesh,
-                        transform: Transform::from_translation(chunk.position().as_vec3()),
+                        transform: Transform::from_translation(chunk_pos.as_vec3()),
                         material,
                         ..default()
                     })

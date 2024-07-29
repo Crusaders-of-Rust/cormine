@@ -20,7 +20,10 @@ use bevy::{
 use bit_field::BitField;
 
 use crate::{
-    chunk::Chunk,
+    chunk::{
+        ChunkPosition,
+        ChunkVoxels,
+    },
     voxel::{
         Voxel,
         VoxelKind,
@@ -34,8 +37,10 @@ pub struct HasMesh;
 pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
-pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
-    trace!("Generating chunk mesh @ {:?}", chunk.position());
+pub fn from_chunk(
+    (chunk_pos, chunk_voxels): (ChunkPosition, ChunkVoxels),
+    adj_chunks: Vec<(ChunkPosition, ChunkVoxels)>,
+) -> Mesh {
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
@@ -80,7 +85,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
     let mut vertices = Vec::new();
     let mut vertex_data = Vec::new();
 
-    let base_voxels = chunk.array().clone();
+    let base_voxels = chunk_voxels.array().clone();
     let mut voxels: HashMap<[i32; 3], Voxel> = base_voxels
         .indexed_iter()
         .map(|((x, y, z), v)| {
@@ -89,12 +94,12 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         })
         .collect();
 
-    for adj_chunk in adj_chunks {
+    for (adj_chunk_pos, adj_chunk) in adj_chunks {
         for (adj_pos, adj_voxel) in adj_chunk.iter() {
             let new_pos = [
-                (adj_chunk.position().x() + adj_pos.0 as i32) - chunk.position().x(),
+                (adj_chunk_pos.x() + adj_pos.0 as i32) - chunk_pos.x(),
                 adj_pos.1 as i32,
-                (adj_chunk.position().z() + adj_pos.2 as i32) - chunk.position().z(),
+                (adj_chunk_pos.z() + adj_pos.2 as i32) - chunk_pos.z(),
             ];
             voxels.insert(new_pos, *adj_voxel);
         }
@@ -205,7 +210,7 @@ pub fn from_chunk(chunk: Chunk, adj_chunks: Vec<Chunk>) -> Mesh {
         }
     }
 
-    for ((x, y, z), v) in chunk.iter().filter(|(_, v)| v.should_mesh()) {
+    for ((x, y, z), v) in chunk_voxels.iter().filter(|(_, v)| v.should_mesh()) {
         let pos = ivec3(x as _, y as _, z as _);
         add_cube(&voxels, &mut vertices, &mut vertex_data, v.kind(), pos);
     }

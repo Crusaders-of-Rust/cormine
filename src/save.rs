@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::{
-    chunk::Chunk,
+    chunk::ChunkVoxels,
     world::World,
 };
 
@@ -12,12 +12,12 @@ use cormine_shared::save::SaveData as SaveDataInner;
 pub struct SaveData(SaveDataInner);
 
 impl SaveData {
-    pub fn from_world(query: Query<&Chunk>, world: &World) -> Self {
+    pub fn from_world(query: Query<&ChunkVoxels>, world: &World) -> Self {
         let noise_map = crate::terrain::generate_noise_map(1024, 1024, world.seed);
         let mut voxels = Vec::new();
-        for (_, chunk) in world.iter() {
+        for (chunk_pos, chunk) in world.iter() {
             let chunk = query.get(chunk).expect("invalid chunk in world");
-            for (vox_pos, vox) in chunk.iter_pos() {
+            for (vox_pos, vox) in chunk.iter_world_pos(chunk_pos) {
                 if crate::terrain::block_at_position(vox_pos, &noise_map) != vox.kind() {
                     voxels.push((vox_pos.as_ivec3(), vox.kind()));
                 }

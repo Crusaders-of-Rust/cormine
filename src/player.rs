@@ -1,5 +1,5 @@
 use crate::{
-    chunk::Chunk,
+    chunk::ChunkVoxels,
     highlight::UpdateHighlightedEvent,
     input::{
         CameraVelocity,
@@ -36,7 +36,7 @@ pub fn player_move(
     mut camera_transform: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
     world: Res<World>,
-    chunks: Query<&Chunk>,
+    chunks: Query<&ChunkVoxels>,
     input_state: Res<InputState>,
     mut color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
     mut ev_update: EventWriter<UpdateHighlightedEvent>,
