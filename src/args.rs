@@ -4,9 +4,9 @@ use std::path::PathBuf;
 /// CoRmine.
 #[derive(FromArgs)]
 pub struct Arguments {
-    /// disable vsync
-    #[argh(switch)]
-    pub disable_vsync: bool,
+    /// enable vsync
+    #[argh(switch, short = 'v')]
+    pub enable_vsync: bool,
     /// save file to load
     #[argh(option, long = "load")]
     pub save_file: Option<PathBuf>,
