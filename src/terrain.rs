@@ -10,6 +10,7 @@ use crate::{
         CHUNK_SIZE,
         MAX_HEIGHT,
     },
+    player::PlayerMovedEvent,
     voxel::{
         LocalVoxelPosition,
         VoxelKind,
@@ -104,9 +105,13 @@ pub struct TerrainGenerationTask(Task<(Entity, ChunkVoxels)>);
 pub fn queue_generate_chunk_terrain(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
+    mut ev_movement: EventReader<PlayerMovedEvent>,
     settings: Res<crate::Settings>,
     player: Query<&Transform, With<Camera>>,
 ) {
+    if ev_movement.len() > 0 && !ev_movement.read().any(|mvmnt| mvmnt.changed_chunk()) {
+        return;
+    }
     let pos: ChunkPosition = player.single().translation.as_ivec3().into();
     let radius = (settings.load_distance as isize) / 2;
     let task_pool = AsyncComputeTaskPool::get();

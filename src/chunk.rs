@@ -84,6 +84,12 @@ impl From<VoxelPosition> for ChunkPosition {
     }
 }
 
+impl From<Vec3> for ChunkPosition {
+    fn from(pos: Vec3) -> Self {
+        pos.as_ivec3().into()
+    }
+}
+
 impl From<IVec3> for ChunkPosition {
     fn from(pos: IVec3) -> Self {
         let mut pos = IVec2 { x: pos.x, y: pos.z };

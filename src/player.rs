@@ -1,5 +1,8 @@
 use crate::{
-    chunk::ChunkVoxels,
+    chunk::{
+        ChunkPosition,
+        ChunkVoxels,
+    },
     highlight::UpdateHighlightedEvent,
     input::{
         CameraVelocity,
@@ -29,7 +32,16 @@ const _: () = assert!(PLAYER_HEIGHT >= PLAYER_CAMERA_HEIGHT);
 const PLAYER_SIDE_LENGTH: f32 = 1.0;
 
 #[derive(Event)]
-pub struct PlayerMovedEvent;
+pub struct PlayerMovedEvent {
+    from: Vec3,
+    to: Vec3,
+}
+
+impl PlayerMovedEvent {
+    pub fn changed_chunk(&self) -> bool {
+        ChunkPosition::from(self.from) != ChunkPosition::from(self.to)
+    }
+}
 
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
@@ -178,6 +190,9 @@ pub fn player_move(
 
     if *pos != start_pos {
         ev_update.send(UpdateHighlightedEvent);
-        ev_move.send(PlayerMovedEvent);
+        ev_move.send(PlayerMovedEvent {
+            from: start_pos,
+            to: *pos,
+        });
     }
 }

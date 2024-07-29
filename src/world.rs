@@ -57,7 +57,7 @@ impl World {
     ) -> Option<&'a Voxel> {
         let chunk_base: ChunkPosition = pos.into();
         let chunk = self.chunk_map.get(&chunk_base).copied()?;
-        let chunk = chunks.get(chunk).unwrap();
+        let chunk = chunks.get(chunk).ok()?;
         let local_coord = pos.into();
 
         Some(chunk.voxel(local_coord))
