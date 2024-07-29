@@ -84,11 +84,27 @@ impl From<VoxelPosition> for ChunkPosition {
     }
 }
 
+impl From<IVec3> for ChunkPosition {
+    fn from(pos: IVec3) -> Self {
+        let mut pos = IVec2 { x: pos.x, y: pos.z };
+        pos -= pos.rem_euclid(ivec2(CHUNK_SIZE as _, CHUNK_SIZE as _));
+        Self(pos)
+    }
+}
+
 impl Add<LocalVoxelPosition> for &ChunkPosition {
     type Output = VoxelPosition;
 
     fn add(self, rhs: LocalVoxelPosition) -> Self::Output {
         VoxelPosition::new(self.as_ivec3() + rhs.as_ivec3())
+    }
+}
+
+impl Add<IVec2> for &ChunkPosition {
+    type Output = ChunkPosition;
+
+    fn add(self, rhs: IVec2) -> Self::Output {
+        ChunkPosition::new(self.x() + rhs.x, self.z() + rhs.y)
     }
 }
 

@@ -13,7 +13,10 @@ use crate::{
         VoxelPosition,
     },
 };
-use bevy::prelude::*;
+use bevy::{
+    math::ivec2,
+    prelude::*,
+};
 use noise::{
     utils::{
         NoiseMap,
@@ -86,16 +89,24 @@ pub fn spiral(max_x: isize, max_y: isize) -> impl Iterator<Item = (isize, isize)
     })
 }
 
-pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::World>) {
+pub fn generate_chunks(
+    mut commands: Commands,
+    mut world: ResMut<crate::world::World>,
+    player: Query<&Transform, With<Camera>>,
+) {
+    let pos: ChunkPosition = player.single().translation.as_ivec3().into();
     let chunk_count_x = 8;
     let chunk_count_z = 8;
-    let noise_map = generate_noise_map(1024, 1024, world.seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
-        let chunk_pos = ChunkPosition::new(
-            (chunk_x * CHUNK_SIZE as isize) as i32,
-            (chunk_z * CHUNK_SIZE as isize) as i32,
-        );
+        let chunk_pos = &pos
+            + ivec2(
+                (chunk_x * CHUNK_SIZE as isize) as i32,
+                (chunk_z * CHUNK_SIZE as isize) as i32,
+            );
+        if world.chunk_at(chunk_pos).is_some() {
+            continue;
+        }
         let mut chunk = Chunk::new().with_position(chunk_pos);
 
         for x in 0..CHUNK_SIZE {
@@ -103,7 +114,8 @@ pub fn generate_chunks(mut commands: Commands, mut world: ResMut<crate::world::W
                 for z in 0..CHUNK_SIZE {
                     let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
                     let global_pos = &chunk_pos + local_pos;
-                    chunk.voxel_mut(local_pos).kind = block_at_position(global_pos, &noise_map);
+                    chunk.voxel_mut(local_pos).kind =
+                        block_at_position(global_pos, &world.noise_map);
                 }
             }
         }

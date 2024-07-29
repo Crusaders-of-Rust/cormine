@@ -116,29 +116,27 @@ fn main() {
     embedded_asset!(app, "../assets/shaders/voxel.wgsl");
 
     app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
-    app.init_resource::<world::World>();
     app.init_resource::<highlight::SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
     app.init_resource::<input::QuitCounter>();
 
-    app.add_systems(Startup, terrain::generate_chunks);
+    app.add_systems(Update, terrain::generate_chunks);
 
     if let Some(save) = &args.save_file {
         app.insert_resource(save::SaveData::from_file(save));
     }
 
-    let mut world = world::World::default();
-    if let Some(seed) = args.seed {
+    let seed = if let Some(seed) = args.seed {
         if args.save_file.is_some() {
             error!("Both `seed` and `load` are set");
             return;
         }
-        world.seed = seed
+        seed
     } else {
-        world.seed = thread_rng().gen();
-    }
-    app.insert_resource(world);
+        thread_rng().gen()
+    };
+    app.insert_resource(world::World::from_seed(seed));
 
     #[cfg(feature = "wireframe")]
     {

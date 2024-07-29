@@ -13,14 +13,25 @@ use bevy::{
     prelude::*,
     utils::HashMap,
 };
+use noise::utils::NoiseMap;
 
-#[derive(Default, Resource)]
+#[derive(Resource)]
 pub struct World {
     pub seed: u32,
     chunk_map: HashMap<ChunkPosition, Entity>,
+    pub noise_map: NoiseMap,
 }
 
 impl World {
+    pub fn from_seed(seed: u32) -> Self {
+        let noise_map = crate::terrain::generate_noise_map(1024, 1024, seed);
+        Self {
+            seed,
+            chunk_map: default(),
+            noise_map,
+        }
+    }
+
     pub fn add_chunk(&mut self, pos: ChunkPosition, entity: Entity) {
         assert!(
             self.chunk_map.insert(pos, entity).is_none(),
