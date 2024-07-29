@@ -28,6 +28,9 @@ const PLAYER_CAMERA_HEIGHT: f32 = 1.8;
 const _: () = assert!(PLAYER_HEIGHT >= PLAYER_CAMERA_HEIGHT);
 const PLAYER_SIDE_LENGTH: f32 = 1.0;
 
+#[derive(Event)]
+pub struct PlayerMovedEvent;
+
 pub fn player_move(
     mut camera_velocity: ResMut<CameraVelocity>,
     mut camera_transform: Query<&mut Transform, With<Camera>>,
@@ -37,6 +40,7 @@ pub fn player_move(
     input_state: Res<InputState>,
     mut color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
     mut ev_update: EventWriter<UpdateHighlightedEvent>,
+    mut ev_move: EventWriter<PlayerMovedEvent>,
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
@@ -170,5 +174,6 @@ pub fn player_move(
 
     if *pos != start_pos {
         ev_update.send(UpdateHighlightedEvent);
+        ev_move.send(PlayerMovedEvent);
     }
 }

@@ -129,7 +129,10 @@ fn main() {
         load_distance: args.load_distance,
     });
 
-    app.add_systems(Update, terrain::generate_chunks);
+    app.add_systems(
+        Update,
+        terrain::generate_chunks.run_if(run_once().or_else(on_event::<player::PlayerMovedEvent>())),
+    );
 
     if let Some(save) = &args.save_file {
         app.insert_resource(save::SaveData::from_file(save));
@@ -188,6 +191,7 @@ fn main() {
     )
     .add_systems(Startup, input::hook_cursor)
     .add_systems(Update, input::player_look)
+    .add_event::<player::PlayerMovedEvent>()
     .add_systems(Update, player::player_move.after(input::InputSet));
 
     #[cfg(feature = "debug")]
