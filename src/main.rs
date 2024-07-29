@@ -67,7 +67,6 @@ use bevy::render::{
     RenderPlugin,
 };
 
-use highlight::SelectedVoxel;
 use material::{
     VoxelMaterial,
     VoxelMaterialResource,
@@ -115,7 +114,7 @@ fn main() {
 
     app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
     app.init_resource::<world::World>();
-    app.init_resource::<SelectedVoxel>();
+    app.init_resource::<highlight::SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
     app.init_resource::<input::QuitCounter>();
@@ -164,14 +163,17 @@ fn main() {
         (
             queue_chunk_meshes,
             handle_mesh_tasks,
-            world::process_save_events,
+            world::process_save_events.run_if(on_event::<input::SaveEvent>()),
         ),
     )
-    .add_systems(Update, highlight::update_selected_voxel);
-
-    app.add_systems(Startup, input::hook_cursor);
-    app.add_systems(Update, input::player_look);
-    app.add_systems(Update, player::player_move.after(input::InputSet));
+    .add_event::<highlight::UpdateHighlightedEvent>()
+    .add_systems(
+        Update,
+        highlight::update_selected_voxel.run_if(on_event::<highlight::UpdateHighlightedEvent>()),
+    )
+    .add_systems(Startup, input::hook_cursor)
+    .add_systems(Update, input::player_look)
+    .add_systems(Update, player::player_move.after(input::InputSet));
 
     #[cfg(feature = "debug")]
     app.add_plugins(debug::DebugUiPlugins);

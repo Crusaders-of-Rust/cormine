@@ -1,6 +1,9 @@
 use crate::{
     chunk::Chunk,
-    highlight::SelectedVoxel,
+    highlight::{
+        SelectedVoxel,
+        UpdateHighlightedEvent,
+    },
     mesh::HasMesh,
     ui,
     voxel::VoxelKind,
@@ -42,18 +45,25 @@ pub fn player_look(
     qwindow: Query<&Window, With<PrimaryWindow>>,
     mut mouse: EventReader<MouseMotion>,
     mut camera_transform: Query<&mut Transform, With<Camera>>,
+    mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {
     let window = qwindow.single();
     let mut camera_transform = camera_transform.single_mut();
-
+    if window.cursor.grab_mode == CursorGrabMode::None {
+        // Consume events
+        mouse.read();
+        return;
+    }
+    let mut updated = false;
     for ev in mouse.read() {
-        if window.cursor.grab_mode == CursorGrabMode::None {
-            continue;
-        }
         let yaw = -ev.delta.x * 0.003;
         let pitch = -ev.delta.y * 0.002;
         camera_transform.rotate_y(yaw);
         camera_transform.rotate_local_x(pitch);
+        updated = true;
+    }
+    if updated {
+        ev_update.send(UpdateHighlightedEvent);
     }
 }
 
@@ -69,6 +79,7 @@ pub fn handle_lmb(
     selected: Res<SelectedVoxel>,
     world: Res<world::World>,
     mut chunks: Query<&mut Chunk>,
+    mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
         return;
@@ -81,7 +92,6 @@ pub fn handle_lmb(
         let voxel = chunk_data.voxel_mut(selected_voxel.into());
         if voxel.breakable() {
             voxel.clear();
-
             commands
                 .entity(chunk)
                 .remove::<HasMesh>()
@@ -100,6 +110,7 @@ pub fn handle_lmb(
                         .insert(crate::UpdateSync);
                 }
             }
+            ev_update.send(UpdateHighlightedEvent);
         }
     }
 }
@@ -111,6 +122,7 @@ pub fn handle_rmb(
     world: Res<world::World>,
     mut chunks: Query<&mut Chunk>,
     input_state: Res<InputState>,
+    mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {
     if !buttons.just_pressed(MouseButton::Right) {
         return;
@@ -148,6 +160,7 @@ pub fn handle_rmb(
                     .insert(crate::UpdateSync);
             }
         }
+        ev_update.send(UpdateHighlightedEvent);
     }
 }
 

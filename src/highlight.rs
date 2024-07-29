@@ -18,6 +18,10 @@ pub struct SelectedVoxel {
     pub to_place: Option<VoxelPosition>,
 }
 
+/// Emitted when the player's highlighted block should be updated
+#[derive(Event)]
+pub struct UpdateHighlightedEvent;
+
 const SELECT_DISTANCE: f32 = 16.0;
 
 fn draw_line(start: Vec3, direction: Vec3, distance: f32) -> impl Iterator<Item = IVec3> {

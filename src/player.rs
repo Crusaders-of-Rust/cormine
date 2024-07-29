@@ -1,5 +1,6 @@
 use crate::{
     chunk::Chunk,
+    highlight::UpdateHighlightedEvent,
     input::{
         CameraVelocity,
         InputState,
@@ -35,9 +36,11 @@ pub fn player_move(
     chunks: Query<&Chunk>,
     input_state: Res<InputState>,
     mut color_overlay: Query<&mut BackgroundColor, With<ui::ColorOverlay>>,
+    mut ev_update: EventWriter<UpdateHighlightedEvent>,
 ) {
     let vel = &mut camera_velocity.vel;
     let pos: &mut Vec3 = &mut camera_transform.single_mut().translation;
+    let start_pos = *pos;
     let get_voxel = |player_pos: Vec3, offset: Vec3| -> Option<&Voxel> {
         let check_pos = player_pos + offset + vec3(0.0, -PLAYER_HEIGHT, 0.0);
         let voxel_pos = VoxelPosition::new(check_pos.as_ivec3());
@@ -164,4 +167,8 @@ pub fn player_move(
     // velocity decay
     vel.x *= 0.9 * (time.delta_seconds() / 1000.0);
     vel.z *= 0.9 * (time.delta_seconds() / 1000.0);
+
+    if *pos != start_pos {
+        ev_update.send(UpdateHighlightedEvent);
+    }
 }

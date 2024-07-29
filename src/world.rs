@@ -5,7 +5,6 @@ use crate::{
         Chunk,
         ChunkPosition,
     },
-    input::SaveEvent,
     save,
     voxel::{
         Voxel,
@@ -80,14 +79,7 @@ impl World {
     }
 }
 
-pub fn process_save_events(
-    query: Query<&Chunk>,
-    world: Res<World>,
-    mut ev_save: EventReader<SaveEvent>,
-) {
-    if ev_save.read().next().is_none() {
-        return;
-    }
+pub fn process_save_events(query: Query<&Chunk>, world: Res<World>) {
     let save = save::from_world(query, &world);
     save.to_file("game.cms", true).unwrap();
     info!("Saved to `game.cms`");
