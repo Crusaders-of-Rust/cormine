@@ -1,3 +1,5 @@
+use std::f32::EPSILON;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -16,8 +18,44 @@ pub struct SelectedVoxel {
     pub to_place: Option<VoxelPosition>,
 }
 
-const SELECT_DISTANCE: f32 = 32.0;
-const STEP_SIZE: f32 = 0.05;
+const SELECT_DISTANCE: f32 = 16.0;
+
+fn draw_line(start: Vec3, direction: Vec3, distance: f32) -> impl Iterator<Item = IVec3> {
+    let end_pos = start + direction * distance;
+
+    let mut voxel = start.floor();
+    let end_voxel = end_pos.floor();
+
+    let step = direction.signum();
+    let t_delta = direction.recip().abs();
+
+    let mask = Vec3::from(step.cmpge(Vec3::ZERO));
+    let mut t_max = ((voxel - start + mask) / direction).abs();
+
+    std::iter::from_fn(move || {
+        if Vec3::abs_diff_eq(voxel, end_voxel, EPSILON) {
+            return None;
+        };
+        if t_max.x < t_max.y {
+            if t_max.x < t_max.z {
+                voxel.x += step.x;
+                t_max.x += t_delta.x;
+            } else {
+                voxel.z += step.z;
+                t_max.z += t_delta.z;
+            }
+        } else {
+            if t_max.y < t_max.z {
+                voxel.y += step.y;
+                t_max.y += t_delta.y;
+            } else {
+                voxel.z += step.z;
+                t_max.z += t_delta.z;
+            }
+        }
+        Some(voxel.as_ivec3())
+    })
+}
 
 pub fn update_selected_voxel(
     world: Res<world::World>,
@@ -31,35 +69,26 @@ pub fn update_selected_voxel(
     let pos = player_trans.translation;
     let direction = player_trans.forward().as_vec3().normalize();
 
-    let mut step: f32 = 0.0;
-    while step <= SELECT_DISTANCE {
-        let check = (pos + direction * step).as_ivec3();
-        let check = VoxelPosition::new(check);
-
-        match world.voxel_at(check, &chunks) {
+    let mut prev = None;
+    for pos in draw_line(pos, direction, SELECT_DISTANCE) {
+        let voxel_pos = VoxelPosition::new(pos);
+        match world.voxel_at(voxel_pos, &chunks) {
             Some(voxel) if voxel.should_mesh() => {
-                selected.to_break = Some(check);
+                selected.to_break = Some(voxel_pos);
                 let mat = materials.get_mut(&material_handle.handle).unwrap();
                 mat.has_selected = 1;
-                mat.selected_voxel = check.as_vec3();
-
-                if step != 0.0 {
-                    let prev_step = (pos + direction * (step - STEP_SIZE)).as_ivec3();
-                    selected.to_place = Some(VoxelPosition::new(prev_step))
-                } else {
-                    selected.to_place = None;
-                }
-
+                mat.selected_voxel = voxel_pos.as_vec3();
+                selected.to_place = prev.map(VoxelPosition::new);
                 return;
             }
-            _ => {
-                step += STEP_SIZE;
-            }
+            _ => (),
         }
+        prev = Some(pos);
     }
+
     if selected.to_break.is_some() {
         let mat = materials.get_mut(&material_handle.handle).unwrap();
         mat.has_selected = 0;
-        selected.to_break = None;
     }
+    selected.to_break = None;
 }
