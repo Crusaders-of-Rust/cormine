@@ -1,4 +1,7 @@
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    sync::Arc,
+};
 
 use crate::{
     chunk::{
@@ -16,6 +19,12 @@ use crate::{
 use bevy::{
     math::ivec2,
     prelude::*,
+    tasks::{
+        block_on,
+        futures_lite::future,
+        AsyncComputeTaskPool,
+        Task,
+    },
 };
 use noise::{
     utils::{
@@ -89,7 +98,10 @@ pub fn spiral(max_x: isize, max_y: isize) -> impl Iterator<Item = (isize, isize)
     })
 }
 
-pub fn generate_chunks(
+#[derive(Component)]
+pub struct TerrainGenerationTask(Task<(Entity, ChunkVoxels)>);
+
+pub fn queue_generate_chunk_terrain(
     mut commands: Commands,
     mut world: ResMut<crate::world::World>,
     settings: Res<crate::Settings>,
@@ -97,6 +109,7 @@ pub fn generate_chunks(
 ) {
     let pos: ChunkPosition = player.single().translation.as_ivec3().into();
     let radius = (settings.load_distance as isize) / 2;
+    let task_pool = AsyncComputeTaskPool::get();
 
     for (chunk_x, chunk_z) in spiral(radius, radius) {
         let chunk_pos = &pos
@@ -107,20 +120,39 @@ pub fn generate_chunks(
         if world.chunk_at(chunk_pos).is_some() {
             continue;
         }
-        let mut voxels = ChunkVoxels::new();
-
-        for x in 0..CHUNK_SIZE {
-            for y in 0..MAX_HEIGHT {
-                for z in 0..CHUNK_SIZE {
-                    let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
-                    let global_pos = &chunk_pos + local_pos;
-                    voxels.voxel_mut(local_pos).kind =
-                        block_at_position(global_pos, &world.noise_map);
+        let mut chunk = commands.spawn((Name::new("Chunk"), chunk_pos));
+        let chunk_id = chunk.id();
+        let noise_map = Arc::clone(&world.noise_map);
+        let task = async move {
+            let mut voxels = ChunkVoxels::new();
+            for x in 0..CHUNK_SIZE {
+                for y in 0..MAX_HEIGHT {
+                    for z in 0..CHUNK_SIZE {
+                        let local_pos = LocalVoxelPosition::new(x as _, y as _, z as _);
+                        let global_pos = &chunk_pos + local_pos;
+                        voxels.voxel_mut(local_pos).kind =
+                            block_at_position(global_pos, &noise_map);
+                    }
                 }
             }
+            (chunk_id, voxels)
+        };
+        chunk.insert(TerrainGenerationTask(task_pool.spawn(task)));
+        world.add_chunk(chunk_pos, chunk_id);
+    }
+}
+
+pub fn handle_generated_chunk_terrain(
+    mut commands: Commands,
+    mut tasks: Query<&mut TerrainGenerationTask>,
+) {
+    for mut task in tasks.iter_mut() {
+        if let Some((ent, voxels)) = block_on(future::poll_once(&mut task.0)) {
+            commands
+                .entity(ent)
+                .remove::<TerrainGenerationTask>()
+                .insert(voxels);
         }
-        let chunk = commands.spawn((Name::new("Chunk"), chunk_pos, voxels));
-        world.add_chunk(chunk_pos, chunk.id());
     }
 }
 

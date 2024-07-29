@@ -134,7 +134,11 @@ fn main() {
 
     app.add_systems(
         Update,
-        terrain::generate_chunks.run_if(run_once().or_else(on_event::<player::PlayerMovedEvent>())),
+        (
+            terrain::queue_generate_chunk_terrain
+                .run_if(run_once().or_else(on_event::<player::PlayerMovedEvent>())),
+            terrain::handle_generated_chunk_terrain,
+        ),
     );
 
     if let Some(save) = &args.save_file {

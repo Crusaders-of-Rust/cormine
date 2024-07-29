@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     chunk::{
         ChunkPosition,
@@ -19,7 +21,7 @@ use noise::utils::NoiseMap;
 pub struct World {
     pub seed: u32,
     chunk_map: HashMap<ChunkPosition, Entity>,
-    pub noise_map: NoiseMap,
+    pub noise_map: Arc<NoiseMap>,
 }
 
 impl World {
@@ -28,7 +30,7 @@ impl World {
         Self {
             seed,
             chunk_map: default(),
-            noise_map,
+            noise_map: Arc::new(noise_map),
         }
     }
 

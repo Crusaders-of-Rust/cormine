@@ -51,8 +51,12 @@ pub fn player_move(
 
         let chunk_ent = world.chunk_containing(voxel_pos)?;
 
-        let chunk = chunks.get(chunk_ent).unwrap();
-        Some(chunk.voxel(voxel_pos.into()))
+        // Prevent moving into not-yet-loaded chunks
+        if let Ok(chunk) = chunks.get(chunk_ent) {
+            Some(chunk.voxel(voxel_pos.into()))
+        } else {
+            Some(&Voxel::BEDROCK)
+        }
     };
 
     let is_in_water =
