@@ -32,21 +32,11 @@ pub struct ArgumentsGenerate {
     /// seed to use for world generation
     #[argh(option)]
     pub seed: Option<u32>,
-    /// width of the world in chunks
-    #[argh(option, default = "16")]
-    pub width: usize,
-    /// length of the world in chunks
-    #[argh(option, default = "16")]
-    pub length: usize,
 }
 
 impl Default for ArgumentsGenerate {
     fn default() -> Self {
-        Self {
-            seed: None,
-            width: 16,
-            length: 16,
-        }
+        Self { seed: None }
     }
 }
 

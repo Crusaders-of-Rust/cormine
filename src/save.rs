@@ -8,7 +8,6 @@ pub use cormine_shared::save::SaveData;
 pub fn from_world(query: Query<&Chunk>, world: &World) -> SaveData {
     let seed = world.seed();
     let noise_map = crate::terrain::generate_noise_map(1024, 1024, seed);
-    let (width, length) = world.dimensions();
     let mut voxels = Vec::new();
     for (_, chunk) in world.iter() {
         let chunk = query.get(chunk).expect("invalid chunk in world");
@@ -18,10 +17,5 @@ pub fn from_world(query: Query<&Chunk>, world: &World) -> SaveData {
             }
         }
     }
-    SaveData {
-        seed,
-        width,
-        length,
-        voxels,
-    }
+    SaveData { seed, voxels }
 }

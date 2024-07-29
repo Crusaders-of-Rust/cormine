@@ -17,8 +17,6 @@ use glam::{
 
 pub struct SaveData {
     pub seed: u32,
-    pub width: usize,
-    pub length: usize,
     pub voxels: Vec<(IVec3, VoxelKind)>,
 }
 
@@ -43,8 +41,6 @@ impl SaveData {
         Cursor: Seek + Read,
     {
         let seed = reader.read_u32()?;
-        let width = reader.read_leb128_unsigned()? as _;
-        let length = reader.read_leb128_unsigned()? as _;
         let mut voxels = Vec::new();
 
         loop {
@@ -56,12 +52,7 @@ impl SaveData {
             let kind = (reader.read_byte()?).try_into()?;
             voxels.push((ivec3(x, y, z), kind))
         }
-        Ok(Self {
-            seed,
-            width,
-            length,
-            voxels,
-        })
+        Ok(Self { seed, voxels })
     }
 
     pub fn to_file<P: AsRef<Path>>(&self, path: P, replace: bool) -> Result<()> {
@@ -82,9 +73,6 @@ impl SaveData {
         Cursor: Seek + Write,
     {
         writer.write_u32(self.seed)?;
-        writer.write_leb128_unsigned(self.width as _)?;
-        writer.write_leb128_unsigned(self.length as _)?;
-
         for &(vox_pos, vox) in &self.voxels {
             writer.write_leb128_signed((vox_pos.x) as i64)?;
             writer.write_leb128_signed((vox_pos.y) as i64)?;

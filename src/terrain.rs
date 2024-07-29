@@ -109,9 +109,9 @@ pub fn generate_chunks(
         rng.gen()
     });
     world.set_seed(seed);
-    world.set_dimensions((options.width, options.length));
-    let chunk_count_x = options.width as isize / 2;
-    let chunk_count_z = options.length as isize / 2;
+
+    let chunk_count_x = 8;
+    let chunk_count_z = 8;
     let noise_map = generate_noise_map(1024, 1024, seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
@@ -175,10 +175,9 @@ pub fn load_chunks(
         .collect::<HashMap<_, _>>();
     let seed = save.seed;
     world.set_seed(seed);
-    let (width, length) = (save.width, save.length);
-    world.set_dimensions((width, length));
-    let chunk_count_x = width as isize / 2;
-    let chunk_count_z = length as isize / 2;
+
+    let chunk_count_x = 8;
+    let chunk_count_z = 8;
     let noise_map = generate_noise_map(1024, 1024, seed);
 
     for (chunk_x, chunk_z) in spiral(chunk_count_x, chunk_count_z) {
