@@ -20,7 +20,7 @@ use noise::utils::NoiseMap;
 #[derive(Resource)]
 pub struct World {
     pub seed: u32,
-    chunk_map: HashMap<ChunkPosition, Entity>,
+    pub chunk_map: HashMap<ChunkPosition, Entity>,
     pub noise_map: Arc<NoiseMap>,
 }
 
@@ -39,6 +39,12 @@ impl World {
             self.chunk_map.insert(pos, entity).is_none(),
             "Overwriting chunk in map"
         );
+    }
+
+    pub fn remove_chunk(&mut self, pos: ChunkPosition) -> Entity {
+        self.chunk_map
+            .remove(&pos)
+            .expect("Removing chunk that was not in map")
     }
 
     pub fn chunk_at(&self, pos: ChunkPosition) -> Option<Entity> {

@@ -116,6 +116,10 @@ pub fn queue_generate_chunk_terrain(
     let radius = (settings.load_distance as isize) / 2;
     let task_pool = AsyncComputeTaskPool::get();
 
+    // This all leads to a lot of hitching. Can we make it so the player has to be
+    // further than `load_distance` to make a chunk unload?
+    let mut chunks_to_despawn = world.chunk_map.clone();
+
     for (chunk_x, chunk_z) in spiral(radius, radius) {
         let chunk_pos = &pos
             + ivec2(
@@ -123,6 +127,7 @@ pub fn queue_generate_chunk_terrain(
                 (chunk_z * CHUNK_SIZE as isize) as i32,
             );
         if world.chunk_at(chunk_pos).is_some() {
+            chunks_to_despawn.remove(&chunk_pos);
             continue;
         }
         let mut chunk = commands.spawn((Name::new("Chunk"), chunk_pos));
@@ -144,6 +149,11 @@ pub fn queue_generate_chunk_terrain(
         };
         chunk.insert(TerrainGenerationTask(task_pool.spawn(task)));
         world.add_chunk(chunk_pos, chunk_id);
+    }
+
+    for (pos, ent) in chunks_to_despawn {
+        world.remove_chunk(pos);
+        commands.entity(ent).despawn();
     }
 }
 
