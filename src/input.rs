@@ -54,16 +54,16 @@ pub fn player_look(
         mouse.read();
         return;
     }
-    let mut updated = false;
-    for ev in mouse.read() {
-        let yaw = -ev.delta.x * 0.003;
-        let pitch = -ev.delta.y * 0.002;
-        camera_transform.rotate_y(yaw);
-        camera_transform.rotate_local_x(pitch);
-        updated = true;
-    }
-    if updated {
+    if !mouse.is_empty() {
         ev_update.send(UpdateHighlightedEvent);
+    }
+    for ev in mouse.read() {
+        let (mut yaw, mut pitch, mut _roll) = camera_transform.rotation.to_euler(EulerRot::YXZ);
+        yaw -= ev.delta.x * 0.002;
+        pitch -= ev.delta.y * 0.002;
+        pitch = pitch.clamp(-1.54, 1.54);
+        camera_transform.rotation =
+            Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
     }
 }
 
