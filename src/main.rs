@@ -28,6 +28,7 @@ mod ui;
 
 mod player;
 mod save;
+mod sky;
 
 use bevy::{
     asset::embedded_asset,
@@ -70,6 +71,7 @@ use bevy::render::{
 };
 
 use material::{
+    SunMaterial,
     VoxelMaterial,
     VoxelMaterialResource,
 };
@@ -122,8 +124,10 @@ fn main() {
     embedded_asset!(app, "../assets/images/toolbar.png");
     embedded_asset!(app, "../assets/images/selected.png");
     embedded_asset!(app, "../assets/shaders/voxel.wgsl");
+    embedded_asset!(app, "../assets/shaders/sun.wgsl");
 
     app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
+    app.add_plugins(MaterialPlugin::<SunMaterial>::default());
     app.init_resource::<highlight::SelectedVoxel>();
     app.init_resource::<input::CameraVelocity>();
     app.init_resource::<input::InputState>();
@@ -168,7 +172,12 @@ fn main() {
 
     app.add_systems(
         Startup,
-        (make_camera, material::make_voxel_material, ui::draw_ui),
+        (
+            make_camera,
+            sky::add_sun,
+            material::make_voxel_material,
+            ui::draw_ui,
+        ),
     )
     .add_systems(Update, material::process_block_texture)
     .add_systems(
@@ -196,6 +205,7 @@ fn main() {
         Update,
         highlight::update_selected_voxel.run_if(on_event::<highlight::UpdateHighlightedEvent>()),
     )
+    .add_systems(Update, sky::update_sun_position.after(player::player_move))
     .add_systems(Startup, input::hook_cursor)
     .add_systems(Update, input::player_look)
     .add_event::<player::PlayerMovedEvent>()

@@ -109,7 +109,16 @@ impl Material for VoxelMaterial {
         descriptor.vertex.buffers = vec![vtx_layout];
         Ok(())
     }
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Opaque
+}
+
+#[derive(AsBindGroup, Reflect, Asset, Debug, Clone)]
+pub struct SunMaterial {
+    #[uniform(0)]
+    pub color: LinearRgba,
+}
+
+impl Material for SunMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "embedded://cormine/../assets/shaders/sun.wgsl".into()
     }
 }
