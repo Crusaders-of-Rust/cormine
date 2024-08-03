@@ -89,6 +89,12 @@ pub struct VoxelMaterial {
     block_textures: Handle<Image>,
 }
 
+impl VoxelMaterial {
+    pub fn set_light_dir(&mut self, light_dir: Vec3) {
+        self.light_dir = light_dir;
+    }
+}
+
 impl Material for VoxelMaterial {
     fn vertex_shader() -> ShaderRef {
         "embedded://cormine/../assets/shaders/voxel.wgsl".into()

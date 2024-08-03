@@ -10,6 +10,17 @@
 
 const AMBIENT_STRENGTH: f32 = 0.1;
 const OUTLINE_THICKNESS: f32 = 0.1;
+// Y component of the vector from the player to the sun at which point
+// the sun stops lighting things
+const SUN_MIN_ANGLE: f32 = -0.3;
+// Y component of the vector from the player to the sun at which point
+// the sun is at its strongest (i.e. directly overhead)
+const SUN_MAX_ANGLE: f32 = 1.0;
+
+const SUN_MIN_STRENGTH: f32 = 0.0;
+
+const SUN_MAX_STRENGTH: f32 = 1.0;
+
 
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
@@ -86,14 +97,23 @@ fn is_between(v: vec3<f32>, min: vec3<f32>, max: vec3<f32>) -> bool {
     return greater_than_min && less_than_max;
 }
 
+fn map_range(value: f32, min_in: f32, max_in: f32, min_out: f32, max_out: f32) -> f32 {
+    let factor = (value - min_in) / (max_in - min_in);
+    return mix(min_out, max_out, factor);
+}
+
 @fragment
 fn fragment(
     mesh: VertexOut,
 ) -> @location(0) vec4<f32> {
     let norm = normalize(mesh.normal);
     let light_dir = normalize(light_dir);
+    // Strength of diffuse lighting according to angle between it and normal
     let diff_strength = max(dot(norm, light_dir), 0.0);
-    let diff_color = light_color * diff_strength;
+    // Strength of diffuse lighting based on sun direction - disabled below the horizon
+    let diff_brightness = map_range(light_dir.y, SUN_MIN_ANGLE, SUN_MAX_ANGLE, SUN_MIN_STRENGTH, SUN_MAX_STRENGTH);
+
+    let diff_color = light_color * diff_strength * diff_brightness;
     let ambient_color = light_color * AMBIENT_STRENGTH;
     let material_idx = extractBits(mesh.vertex_data, 3u, 3u);
     let material_color = textureSample(texture, texture_sampler, mesh.uv, material_idx);
