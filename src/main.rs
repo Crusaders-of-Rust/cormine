@@ -36,6 +36,7 @@ use bevy::{
         system::SystemState,
         world::CommandQueue,
     },
+    render::primitives::Aabb,
     tasks::{
         block_on,
         futures_lite::future,
@@ -294,6 +295,8 @@ fn queue_chunk_meshes(
                         ..default()
                     })
                     .insert(HasMesh)
+                    // Force AABB to be recalculated so we get correct frustrum culling
+                    .remove::<Aabb>()
                     .remove::<ChunkMeshingTask>();
             });
             cmd_queue
