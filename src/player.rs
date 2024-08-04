@@ -29,7 +29,7 @@ const MAX_SWIM_UP_SPEED: f32 = 4.0;
 const PLAYER_HEIGHT: f32 = 2.0;
 const PLAYER_CAMERA_HEIGHT: f32 = 1.8;
 const _: () = assert!(PLAYER_HEIGHT >= PLAYER_CAMERA_HEIGHT);
-const PLAYER_SIDE_LENGTH: f32 = 1.0;
+const PLAYER_SIDE_LENGTH: f32 = 0.3;
 
 #[derive(Event)]
 pub struct PlayerMovedEvent {
@@ -111,17 +111,19 @@ pub fn player_move(
             if has_collision(base_pos, Vec3::NEG_X * PLAYER_SIDE_LENGTH) {
                 collisions.neg_x = true;
             }
-            if has_collision(base_pos, Vec3::NEG_Y) {
-                collisions.neg_y = true;
-            }
-            if has_collision(base_pos, Vec3::NEG_Z * PLAYER_SIDE_LENGTH) {
-                collisions.neg_z = true;
-            }
             if has_collision(base_pos, Vec3::X * PLAYER_SIDE_LENGTH) {
                 collisions.x = true;
             }
+
+            if has_collision(base_pos, Vec3::NEG_Y) {
+                collisions.neg_y = true;
+            }
             if has_collision(base_pos, Vec3::Y) {
                 collisions.y = true;
+            }
+
+            if has_collision(base_pos, Vec3::NEG_Z * PLAYER_SIDE_LENGTH) {
+                collisions.neg_z = true;
             }
             if has_collision(base_pos, Vec3::Z * PLAYER_SIDE_LENGTH) {
                 collisions.z = true;
