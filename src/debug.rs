@@ -50,11 +50,24 @@ fn should_display_perf_stats(state: Res<DebugUiState>) -> bool {
     state.perf_stats
 }
 
-fn display_player_info(mut egui: EguiContexts, player: Query<&Transform, With<Camera>>) {
-    let camera_trans = player.single();
+fn display_player_info(
+    mut egui: EguiContexts,
+    mut player: Query<(&Transform, &mut Projection), With<Camera>>,
+) {
+    let (camera_trans, mut projection) = player.single_mut();
+    let Projection::Perspective(ref mut projection) = projection.as_mut() else {
+        unreachable!()
+    };
+    let fov_low = f32::to_radians(20.0);
+    let fov_high = f32::to_radians(140.0);
     egui::Window::new("Player Info").show(egui.ctx_mut(), |ui| {
         ui.label(format!("Position: {:.1}", camera_trans.translation));
         ui.label(format!("Facing: {:.1}", camera_trans.forward().as_vec3()));
+        let slider = egui::Slider::new(&mut projection.fov, fov_low..=fov_high)
+            .custom_formatter(|n, _| format!("{}", n.to_degrees().round()))
+            .custom_parser(|n| n.parse().ok().map(f64::to_radians))
+            .text("Field of View");
+        ui.add(slider)
     });
 }
 
