@@ -9,7 +9,10 @@ use crate::{
     voxel::VoxelKind,
     world,
 };
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::WindowMode,
+};
 
 use bevy::{
     input::mouse::{
@@ -247,6 +250,13 @@ pub fn handle_special_keys(
         }
     } else {
         quit_counter.0 = 0.0;
+    }
+
+    if keys.just_pressed(KeyCode::F1) {
+        window.mode = match window.mode {
+            WindowMode::Windowed => WindowMode::BorderlessFullscreen,
+            _ => WindowMode::Windowed,
+        }
     }
 
     let mut new_selected = input_state.selected_voxel;
