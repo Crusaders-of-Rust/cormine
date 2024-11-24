@@ -39,6 +39,7 @@ use bevy::{
         futures_lite::future,
         AsyncComputeTaskPool,
         ComputeTaskPool,
+        ParallelSlice,
         Task,
     },
 };
@@ -233,11 +234,16 @@ fn make_camera(mut commands: Commands) {
 }
 
 #[derive(Component)]
-struct ChunkMeshingTask {
-    /// Task (either sync or async) which generates a mesh
-    task: Task<Mesh>,
-    chunk: Entity,
-    pos: ChunkPosition,
+enum ChunkMeshingTask {
+    Async {
+        pos: ChunkPosition,
+        task: Task<Mesh>,
+    },
+    Sync {
+        pos: ChunkPosition,
+        voxels: ChunkVoxels,
+        adjacent: Vec<(ChunkPosition, ChunkVoxels)>,
+    },
 }
 
 /// Marker component for chunks indicating they should be updated synchronously
@@ -255,7 +261,6 @@ fn queue_chunk_meshes(
     world: Res<world::World>,
 ) {
     let task_pool = AsyncComputeTaskPool::get();
-    let sync_task_pool = ComputeTaskPool::get();
     for (ent, chunk_pos, chunk, sync) in dirty_chunks
         .iter()
         .map(|(e, pos, c, sync)| (e, *pos, c.clone(), sync.is_some()))
@@ -272,48 +277,79 @@ fn queue_chunk_meshes(
             adj_chunks.push((chunk_pos, chunk));
         }
 
-        let task = async move { mesh::from_chunk((chunk_pos, chunk.clone()), adj_chunks) };
-
-        let task = if sync || chunk_pos.in_range_of_spawn(2) {
-            sync_task_pool.spawn(task)
+        if sync || chunk_pos.in_range_of_spawn(2) {
+            commands.entity(ent).insert(ChunkMeshingTask::Sync {
+                pos: chunk_pos,
+                voxels: chunk,
+                adjacent: adj_chunks,
+            });
         } else {
-            task_pool.spawn(task)
+            let task = async move { mesh::from_chunk((chunk_pos, &chunk), &adj_chunks) };
+            commands.entity(ent).insert(ChunkMeshingTask::Async {
+                task: task_pool.spawn(task),
+                pos: chunk_pos,
+            });
         };
-        commands.entity(ent).insert(ChunkMeshingTask {
-            task,
-            chunk: ent,
-            pos: chunk_pos,
-        });
     }
 }
 
 fn handle_mesh_tasks(
     mut commands: Commands,
-    mut tasks: Query<&mut ChunkMeshingTask>,
+    mut tasks: Query<(Entity, &mut ChunkMeshingTask)>,
     mut meshes: ResMut<Assets<Mesh>>,
     materials: Res<VoxelMaterialResource>,
 ) {
-    let mut completed = 0;
-    for mut task in tasks.iter_mut() {
-        if let Some(mesh) = block_on(future::poll_once(&mut task.task)) {
-            completed += 1;
-            let mesh = meshes.add(mesh);
-            let material = materials.handle.clone();
-            commands
-                .entity(task.chunk)
-                .insert(MaterialMeshBundle {
-                    mesh,
-                    transform: Transform::from_translation(task.pos.as_vec3()),
-                    material,
-                    ..default()
-                })
-                .insert(HasMesh)
-                // Force AABB to be recalculated so we get correct frustrum culling
-                .remove::<Aabb>()
-                .remove::<ChunkMeshingTask>();
-        }
-    }
-    if completed > 0 {
-        trace!("Completed {completed} meshes this frame");
+    let mut completed_tasks = tasks
+        .iter_mut()
+        .filter_map(|(chunk, mut task)| match &mut *task {
+            ChunkMeshingTask::Async { pos, task } => {
+                let mesh = block_on(future::poll_once(task))?;
+                Some((mesh, chunk, *pos))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let sync_tasks = tasks
+        .iter()
+        .filter_map(|(chunk, task)| {
+            if let ChunkMeshingTask::Sync {
+                pos,
+                voxels,
+                adjacent,
+            } = task
+            {
+                Some((chunk, *pos, voxels, adjacent))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    let sync_tasks = sync_tasks.par_splat_map(ComputeTaskPool::get(), None, |_, tasks| {
+        tasks
+            .iter()
+            .map(|(ent, pos, voxels, adjacent)| {
+                let mesh = mesh::from_chunk((*pos, *voxels), *adjacent);
+                (mesh, *ent, *pos)
+            })
+            .collect::<Vec<_>>()
+    });
+
+    completed_tasks.extend(sync_tasks.into_iter().flat_map(|v| v.into_iter()));
+
+    for (mesh, ent, pos) in completed_tasks {
+        let mesh = meshes.add(mesh);
+        let material = materials.handle.clone();
+        commands
+            .entity(ent)
+            .insert(MaterialMeshBundle {
+                mesh,
+                transform: Transform::from_translation(pos.as_vec3()),
+                material,
+                ..default()
+            })
+            .insert(HasMesh)
+            // Force AABB to be recalculated so we get correct frustrum culling
+            .remove::<Aabb>()
+            .remove::<ChunkMeshingTask>();
     }
 }

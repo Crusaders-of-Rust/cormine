@@ -43,8 +43,8 @@ pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
 
 #[tracing::instrument(level = "trace", skip(chunk_voxels, adj_chunks))]
 pub fn from_chunk(
-    (chunk_pos, chunk_voxels): (ChunkPosition, ChunkVoxels),
-    adj_chunks: Vec<(ChunkPosition, ChunkVoxels)>,
+    (chunk_pos, chunk_voxels): (ChunkPosition, &ChunkVoxels),
+    adj_chunks: &[(ChunkPosition, ChunkVoxels)],
 ) -> Mesh {
     trace!("meshing chunk @ {chunk_pos:?}");
     let mut mesh = Mesh::new(

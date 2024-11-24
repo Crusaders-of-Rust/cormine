@@ -139,7 +139,7 @@ where
                 continue;
             }
             let OctantKind::Node(subindexes) = self.octants[idx].kind else {
-                continue
+                continue;
             };
             let subindexes = subindexes;
             let (first, rest) = subindexes.split_first().unwrap();

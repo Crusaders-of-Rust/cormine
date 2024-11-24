@@ -193,8 +193,8 @@ impl ChunkVoxels {
         self.voxels[idx].get_mut(pos)
     }
 
-    /// Try and merge the octants in each of the octrees in the chunk, returning `true`
-    /// if any merges were possible.
+    /// Try and merge the octants in each of the octrees in the chunk, returning
+    /// `true` if any merges were possible.
     pub fn merge(&mut self) -> bool {
         let mut any = false;
         for tree in &mut self.voxels {
