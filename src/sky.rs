@@ -40,7 +40,8 @@ pub fn update_sun_position(
 ) {
     let mut sun = sun.single_mut();
     let player = player.single();
-    let sun_dir = Transform::from_translation(Vec3::new(0.0, 1.0, 1.0));
+    let mut sun_dir = Transform::from_translation(Vec3::new(0.0, 1.0, 1.0));
+    sun_dir.rotate_x(f32::to_radians(90.0));
     sun.translation = player.translation + sun_dir.forward().as_vec3() * 1000.0;
     let up = sun.up();
     sun.look_at(player.translation, up);
