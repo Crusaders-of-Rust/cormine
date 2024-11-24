@@ -5,6 +5,7 @@
 mod args;
 mod chunk;
 mod mesh;
+mod octree;
 mod voxel;
 
 #[cfg(feature = "debug")]
