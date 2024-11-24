@@ -135,7 +135,7 @@ impl From<LocalVoxelPosition> for [usize; 3] {
     }
 }
 
-#[derive(Default, Copy, Clone, Debug)]
+#[derive(Default, Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Voxel {
     pub kind: VoxelKind,
 }

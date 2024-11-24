@@ -13,6 +13,7 @@ impl<const SZ: usize, T: Default> Default for Octree<SZ, T> {
                 kind: OctantKind::Chunk(T::default()),
                 position: OctantPos(0, 0, 0),
                 size: SZ,
+                enabled: true,
             }],
         }
     }
@@ -29,7 +30,7 @@ where
     /// Iterate over each value on the octree, in no specific order.
     pub fn iter(&self) -> impl Iterator<Item = (OctantPos, &T)> {
         // FIXME: Use find_map to avoid needing to process Nodes and needing Either
-        self.octants.iter().flat_map(|octant| match &octant.kind {
+        self.iter_octants().flat_map(|octant| match &octant.kind {
             OctantKind::Chunk(inner) => {
                 let start = octant.position;
                 let end = start + OctantPos(octant.size, octant.size, octant.size);
@@ -45,7 +46,7 @@ where
 
     /// Iterate over each octant in the tree, in no specific order
     pub fn iter_octants(&self) -> impl Iterator<Item = &Octant<T>> {
-        self.octants.iter()
+        self.octants.iter().filter(|o| o.enabled)
     }
 
     pub fn get(&self, pos: OctantPos) -> &T {
@@ -95,6 +96,7 @@ where
                 kind: OctantKind::Chunk(inner),
                 position,
                 size,
+                ..
             } => (inner.clone(), position, size),
         };
 
@@ -117,12 +119,52 @@ where
                         kind: OctantKind::Chunk(inner.clone()),
                         position: position + OctantPos(dx * size, dy * size, dz * size),
                         size,
+                        enabled: true,
                     });
                 }
             }
         }
         self.octants[idx].kind = OctantKind::Node(indexes);
         indexes
+    }
+
+    /// Attempt to merge octants, returning `true` if any merges were possible
+    pub fn merge(&mut self) -> bool
+    where
+        T: Eq,
+    {
+        let mut any = false;
+        for idx in 0..self.octants.len() {
+            if !self.octants[idx].enabled {
+                continue;
+            }
+            let OctantKind::Node(subindexes) = self.octants[idx].kind else {
+                continue
+            };
+            let subindexes = subindexes;
+            let (first, rest) = subindexes.split_first().unwrap();
+            let OctantKind::Chunk(first) = &self.octants[*first].kind else {
+                continue;
+            };
+            if rest.iter().all(|&idx| {
+                let OctantKind::Chunk(c) = &self.octants[idx].kind else {
+                    return false;
+                };
+                first == c
+            }) {
+                any = true;
+                bevy::log::trace!(
+                    "merging node at {:?} (size {})",
+                    self.octants[idx].position,
+                    self.octants[idx].size
+                );
+                self.octants[idx].kind = OctantKind::Chunk(first.clone());
+                for sub in subindexes {
+                    self.octants[sub].enabled = false;
+                }
+            }
+        }
+        any
     }
 }
 
@@ -164,6 +206,9 @@ pub struct Octant<T> {
     pub position: OctantPos,
     /// The side length of the cube
     pub size: usize,
+    /// `false` when this entry is an orphan
+    // FIXME: Have a way to reuse orphaned nodes
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

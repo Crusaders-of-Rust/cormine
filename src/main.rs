@@ -254,7 +254,6 @@ fn queue_chunk_meshes(
     all_chunks: Query<&ChunkVoxels>,
     world: Res<world::World>,
 ) {
-    info_once!("Started queuing chunk tasks");
     let task_pool = AsyncComputeTaskPool::get();
     let sync_task_pool = ComputeTaskPool::get();
     for (ent, chunk_pos, chunk, sync) in dirty_chunks
@@ -286,7 +285,6 @@ fn queue_chunk_meshes(
             pos: chunk_pos,
         });
     }
-    info_once!("Finished queuing chunk tasks");
 }
 
 fn handle_mesh_tasks(

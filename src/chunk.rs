@@ -192,6 +192,16 @@ impl ChunkVoxels {
         let (idx, pos) = lvp_to_octree_idx(position);
         self.voxels[idx].get_mut(pos)
     }
+
+    /// Try and merge the octants in each of the octrees in the chunk, returning `true`
+    /// if any merges were possible.
+    pub fn merge(&mut self) -> bool {
+        let mut any = false;
+        for tree in &mut self.voxels {
+            any |= tree.merge();
+        }
+        any
+    }
 }
 
 fn lvp_to_octree_idx(lvp: LocalVoxelPosition) -> (usize, OctantPos) {
