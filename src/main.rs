@@ -32,10 +32,6 @@ mod sky;
 
 use bevy::{
     asset::embedded_asset,
-    ecs::{
-        system::SystemState,
-        world::CommandQueue,
-    },
     render::primitives::Aabb,
     tasks::{
         block_on,
@@ -236,7 +232,12 @@ fn make_camera(mut commands: Commands) {
 }
 
 #[derive(Component)]
-struct ChunkMeshingTask(Task<CommandQueue>);
+struct ChunkMeshingTask {
+    /// Task (either sync or async) which generates a mesh
+    task: Task<Mesh>,
+    chunk: Entity,
+    pos: ChunkPosition,
+}
 
 /// Marker component for chunks indicating they should be updated synchronously
 /// (before the next frame)
@@ -271,47 +272,46 @@ fn queue_chunk_meshes(
             adj_chunks.push((chunk_pos, chunk));
         }
 
-        let task = async move {
-            let mesh = mesh::from_chunk((chunk_pos, chunk.clone()), adj_chunks);
-            let mut cmd_queue = CommandQueue::default();
-            cmd_queue.push(move |world: &mut World| {
-                let mut system_state =
-                    SystemState::<(ResMut<Assets<Mesh>>, Res<VoxelMaterialResource>)>::new(world);
-                let (mut meshes, material) = system_state.get_mut(world);
-                let mesh = meshes.add(mesh);
-                let material = material.handle.clone();
-                world
-                    .entity_mut(ent)
-                    .insert(MaterialMeshBundle {
-                        mesh,
-                        transform: Transform::from_translation(chunk_pos.as_vec3()),
-                        material,
-                        ..default()
-                    })
-                    .insert(HasMesh)
-                    // Force AABB to be recalculated so we get correct frustrum culling
-                    .remove::<Aabb>()
-                    .remove::<ChunkMeshingTask>();
-            });
-            cmd_queue
-        };
+        let task = async move { mesh::from_chunk((chunk_pos, chunk.clone()), adj_chunks) };
 
         let task = if sync || chunk_pos.in_range_of_spawn(2) {
             sync_task_pool.spawn(task)
         } else {
             task_pool.spawn(task)
         };
-        commands.entity(ent).insert(ChunkMeshingTask(task));
+        commands.entity(ent).insert(ChunkMeshingTask {
+            task,
+            chunk: ent,
+            pos: chunk_pos,
+        });
     }
     info_once!("Finished queuing chunk tasks");
 }
 
-fn handle_mesh_tasks(mut commands: Commands, mut tasks: Query<&mut ChunkMeshingTask>) {
+fn handle_mesh_tasks(
+    mut commands: Commands,
+    mut tasks: Query<&mut ChunkMeshingTask>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    materials: Res<VoxelMaterialResource>,
+) {
     let mut completed = 0;
     for mut task in tasks.iter_mut() {
-        if let Some(mut cmd_queue) = block_on(future::poll_once(&mut task.0)) {
+        if let Some(mesh) = block_on(future::poll_once(&mut task.task)) {
             completed += 1;
-            commands.append(&mut cmd_queue);
+            let mesh = meshes.add(mesh);
+            let material = materials.handle.clone();
+            commands
+                .entity(task.chunk)
+                .insert(MaterialMeshBundle {
+                    mesh,
+                    transform: Transform::from_translation(task.pos.as_vec3()),
+                    material,
+                    ..default()
+                })
+                .insert(HasMesh)
+                // Force AABB to be recalculated so we get correct frustrum culling
+                .remove::<Aabb>()
+                .remove::<ChunkMeshingTask>();
         }
     }
     if completed > 0 {
