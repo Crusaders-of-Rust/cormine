@@ -1,13 +1,12 @@
-#[derive(Default, Debug)]
+use either::Either;
+
+#[derive(Debug, Clone)]
 pub struct Octree<const SZ: usize, T> {
     octants: Vec<Octant<T>>,
 }
 
-impl<const SZ: usize, T> Octree<SZ, T>
-where
-    T: Clone + Default,
-{
-    pub fn new(body: T) -> Self {
+impl<const SZ: usize, T: Default> Default for Octree<SZ, T> {
+    fn default() -> Self {
         Self {
             octants: vec![Octant {
                 kind: OctantKind::Chunk(T::default()),
@@ -16,6 +15,32 @@ where
             }],
         }
     }
+}
+
+impl<const SZ: usize, T> Octree<SZ, T>
+where
+    T: Clone + Default,
+{
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Iterate over each value on the octree, in no specific order.
+    pub fn iter(&self) -> impl Iterator<Item = (OctantPos, &T)> {
+        // FIXME: Use find_map to avoid needing to process Nodes and needing Either
+        self.octants.iter().flat_map(|octant| match &octant.kind {
+            OctantKind::Chunk(inner) => {
+                let start = octant.position;
+                let end = start + OctantPos(octant.size, octant.size, octant.size);
+                Either::Left((start.0..end.0).flat_map(move |x| {
+                    (start.1..end.1).flat_map(move |y| {
+                        (start.2..end.2).map(move |z| (OctantPos(x, y, z), inner))
+                    })
+                }))
+            }
+            OctantKind::Node(_) => Either::Right(std::iter::empty()),
+        })
+    }
 
     pub fn get(&self, pos: OctantPos) -> &T {
         self.octants[0]
@@ -23,7 +48,9 @@ where
             .expect("given position out of range of tree")
     }
 
-    pub fn insert(&mut self, pos: OctantPos, value: T)
+    /// Get a mutable reference to the value at the given position
+    /// Will split the octree if necessary
+    pub fn get_mut(&mut self, pos: OctantPos) -> &mut T
     where
         T: std::fmt::Debug,
     {
@@ -38,8 +65,8 @@ where
                     .find(|&&subidx| self.octants[subidx].contains(pos))
                     .unwrap();
             } else {
-                idx = *self
-                    .split_chunk(idx)
+                let indexes = self.split_chunk(idx);
+                idx = *indexes
                     .iter()
                     .find(|&&subidx| self.octants[subidx].contains(pos))
                     .unwrap();
@@ -48,7 +75,7 @@ where
         let OctantKind::Chunk(inner) = &mut self.octants[idx].kind else {
             unreachable!()
         };
-        *inner = value;
+        inner
     }
 
     fn split_chunk(&mut self, idx: usize) -> [usize; 8] {
@@ -76,13 +103,14 @@ where
             first_idx + 6,
             first_idx + 7,
         ];
+        let size = size / 2;
         for dx in 0..=1 {
             for dy in 0..=1 {
                 for dz in 0..=1 {
                     self.octants.push(Octant {
                         kind: OctantKind::Chunk(inner.clone()),
-                        position: position + OctantPos(dx, dy, dz),
-                        size: size / 2,
+                        position: position + OctantPos(dx * size, dy * size, dz * size),
+                        size,
                     });
                 }
             }
@@ -92,8 +120,18 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OctantPos(usize, usize, usize);
+
+impl OctantPos {
+    pub fn new(x: usize, y: usize, z: usize) -> Self {
+        Self(x, y, z)
+    }
+
+    pub fn new_u32(x: u32, y: u32, z: u32) -> Self {
+        Self(x as _, y as _, z as _)
+    }
+}
 
 impl std::ops::Add for OctantPos {
     type Output = OctantPos;
@@ -102,7 +140,13 @@ impl std::ops::Add for OctantPos {
     }
 }
 
-#[derive(Debug)]
+impl From<OctantPos> for (usize, usize, usize) {
+    fn from(value: OctantPos) -> Self {
+        (value.0, value.1, value.2)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 struct Octant<T> {
     kind: OctantKind<T>,
     position: OctantPos,
@@ -110,7 +154,7 @@ struct Octant<T> {
     size: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum OctantKind<T> {
     /// A contiguous chunk of elements (may be a single element)
     Chunk(T),
@@ -159,12 +203,16 @@ mod test {
 
     #[test]
     pub fn octree() {
-        let mut tree: Octree<3, u8> = Octree::new(0);
+        let mut tree: Octree<4, u8> = Octree::new();
         assert_eq!(*tree.get(OctantPos(0, 0, 0)), 0);
-        tree.insert(OctantPos(1, 1, 1), 1);
+        *tree.get_mut(OctantPos(1, 1, 1)) = 1;
         assert_eq!(*tree.get(OctantPos(0, 0, 0)), 0);
         assert_eq!(*tree.get(OctantPos(1, 1, 1)), 1);
-        tree.insert(OctantPos(1, 1, 1), 2);
-        assert_eq!(*tree.get(OctantPos(1, 1, 1)), 2);
+        *tree.get_mut(OctantPos(1, 1, 3)) = 2;
+        assert_eq!(*tree.get(OctantPos(1, 1, 3)), 2);
+        let mut elts = tree.iter().collect::<Vec<_>>();
+        elts.sort_by_key(|(p, _)| *p);
+        eprintln!("{elts:#?}");
+        assert_eq!(elts.len(), 4 * 4 * 4);
     }
 }

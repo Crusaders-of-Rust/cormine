@@ -10,12 +10,15 @@ use bevy::{
         mesh::{
             MeshVertexAttribute,
             PrimitiveTopology,
-            VertexAttributeValues,
-            VertexAttributeValues::Float32x3,
+            VertexAttributeValues::{
+                self,
+                Float32x3,
+            },
         },
         render_asset::RenderAssetUsages,
         render_resource::VertexFormat,
     },
+    utils::tracing,
 };
 use bit_field::BitField;
 
@@ -37,10 +40,12 @@ pub struct HasMesh;
 pub const VOXEL_VERTEX_DATA: MeshVertexAttribute =
     MeshVertexAttribute::new("Vertex_Data", 0x3bbb0d7d, VertexFormat::Uint32);
 
+#[tracing::instrument(level = "trace", skip(chunk_voxels, adj_chunks))]
 pub fn from_chunk(
     (chunk_pos, chunk_voxels): (ChunkPosition, ChunkVoxels),
     adj_chunks: Vec<(ChunkPosition, ChunkVoxels)>,
 ) -> Mesh {
+    trace!("meshing chunk @ {chunk_pos:?}");
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
@@ -85,11 +90,12 @@ pub fn from_chunk(
     let mut vertices = Vec::new();
     let mut vertex_data = Vec::new();
 
-    let base_voxels = chunk_voxels.array().clone();
-    let mut voxels: HashMap<[i32; 3], Voxel> = base_voxels
-        .indexed_iter()
-        .map(|((x, y, z), v)| {
-            let pos = [x as i32, y as i32, z as i32];
+    // FIXME: As we're using an octree, we could instead add each octant to save
+    // mesh data for contiguous cubes.
+    let mut voxels: HashMap<[i32; 3], Voxel> = chunk_voxels
+        .iter_local_pos()
+        .map(|(lvp, v)| {
+            let pos = [lvp.x() as i32, lvp.y() as i32, lvp.z() as i32];
             (pos, *v)
         })
         .collect();

@@ -1,9 +1,15 @@
 use std::ops::Add;
 
-use crate::voxel::{
-    LocalVoxelPosition,
-    Voxel,
-    VoxelPosition,
+use crate::{
+    octree::{
+        OctantPos,
+        Octree,
+    },
+    voxel::{
+        LocalVoxelPosition,
+        Voxel,
+        VoxelPosition,
+    },
 };
 
 use bevy::{
@@ -14,18 +20,10 @@ use bevy::{
     },
     prelude::*,
 };
-use ndarray::{
-    Array3,
-    ArrayView3,
-    ArrayViewMut3,
-    SliceInfo,
-    SliceInfoElem,
-};
 
 pub const CHUNK_SIZE: usize = 16;
 pub const CHUNK_SIZE_I: i32 = CHUNK_SIZE as i32;
 pub const MAX_HEIGHT: usize = 256;
-const CHUNK_SHAPE: (usize, usize, usize) = (CHUNK_SIZE, MAX_HEIGHT, CHUNK_SIZE);
 
 /// X and Z positions of a chunk. Will always be multiples of [`CHUNK_SIZE`]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
@@ -137,25 +135,27 @@ impl NeighbouringChunks {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Default)]
 pub struct ChunkVoxels {
-    voxels: Array3<Voxel>,
+    // Stack of CHUNK_SIZE^3 cubes; starting at Y=0 and ending at Y=MAX
+    voxels: [Octree<CHUNK_SIZE, Voxel>; MAX_HEIGHT / CHUNK_SIZE],
 }
 
 impl ChunkVoxels {
     pub fn new() -> Self {
-        Self {
-            voxels: Array3::from_elem(CHUNK_SHAPE, Voxel::default()),
-        }
-    }
-
-    pub fn array(&self) -> &Array3<Voxel> {
-        &self.voxels
+        Self::default()
     }
 
     /// Iterate over voxels, returning their local index as a tuple
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize, usize), &Voxel)> {
-        self.voxels.indexed_iter()
+        self.voxels.iter().enumerate().flat_map(|(y_off, octree)| {
+            octree.iter().map(move |(pos, voxel)| {
+                (
+                    (pos + OctantPos::new(0, y_off * CHUNK_SIZE, 0)).into(),
+                    voxel,
+                )
+            })
+        })
     }
 
     /// Iterate over voxels, returning their [`LocalVoxelPosition`]
@@ -174,26 +174,20 @@ impl ChunkVoxels {
     }
 
     pub fn voxel(&self, position: LocalVoxelPosition) -> &Voxel {
-        let coord: [usize; 3] = position.into();
-        &self.voxels[coord]
+        let (idx, pos) = lvp_to_octree_idx(position);
+        self.voxels[idx].get(pos)
     }
 
     pub fn voxel_mut(&mut self, position: LocalVoxelPosition) -> &mut Voxel {
-        let coord: [usize; 3] = position.into();
-        &mut self.voxels[coord]
+        let (idx, pos) = lvp_to_octree_idx(position);
+        self.voxels[idx].get_mut(pos)
     }
+}
 
-    pub fn slice(
-        &self,
-        index: SliceInfo<[SliceInfoElem; 3], ndarray::Ix3, ndarray::Ix3>,
-    ) -> ArrayView3<Voxel> {
-        self.voxels.slice(index)
-    }
-
-    pub fn slice_mut(
-        &mut self,
-        index: SliceInfo<[SliceInfoElem; 3], ndarray::Ix3, ndarray::Ix3>,
-    ) -> ArrayViewMut3<Voxel> {
-        self.voxels.slice_mut(index)
-    }
+fn lvp_to_octree_idx(lvp: LocalVoxelPosition) -> (usize, OctantPos) {
+    let y_idx = lvp.y() as usize / CHUNK_SIZE;
+    (
+        y_idx,
+        OctantPos::new_u32(lvp.x(), lvp.y() % CHUNK_SIZE as u32, lvp.z()),
+    )
 }
