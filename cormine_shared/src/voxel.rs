@@ -55,8 +55,4 @@ impl VoxelKind {
     pub fn breakable(&self) -> bool {
         !matches!(self, VoxelKind::Bedrock)
     }
-
-    pub fn cull_faces(&self) -> bool {
-        !matches!(self, VoxelKind::Bedrock)
-    }
 }

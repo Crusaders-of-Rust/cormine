@@ -145,18 +145,6 @@ impl Voxel {
         kind: VoxelKind::Air,
     };
 
-    pub const STONE: Self = Self {
-        kind: VoxelKind::Stone,
-    };
-
-    pub const GRASS: Self = Self {
-        kind: VoxelKind::Grass,
-    };
-
-    pub const WATER: Self = Self {
-        kind: VoxelKind::Water,
-    };
-
     pub const BEDROCK: Self = Self {
         kind: VoxelKind::Bedrock,
     };
@@ -175,14 +163,6 @@ impl Voxel {
 
     pub fn casts_shadow(&self) -> bool {
         self.kind().casts_shadow()
-    }
-
-    pub fn receives_shadow(&self) -> bool {
-        self.kind().receives_shadow()
-    }
-
-    pub fn cull_faces(&self) -> bool {
-        self.kind().cull_faces()
     }
 
     pub fn breakable(&self) -> bool {
