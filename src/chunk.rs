@@ -2,6 +2,7 @@ use std::ops::Add;
 
 use crate::{
     octree::{
+        Octant,
         OctantPos,
         Octree,
     },
@@ -158,6 +159,15 @@ impl ChunkVoxels {
         })
     }
 
+    /// Iterate over the internal octants in no specific order
+    pub fn iter_octants(&self) -> impl Iterator<Item = Octant<Voxel>> + '_ {
+        self.voxels.iter().enumerate().flat_map(|(y_off, octree)| {
+            octree.iter_octants().map(move |octant| Octant {
+                position: octant.position + OctantPos::new(0, y_off * CHUNK_SIZE, 0),
+                ..*octant
+            })
+        })
+    }
     /// Iterate over voxels, returning their [`LocalVoxelPosition`]
     pub fn iter_local_pos(&self) -> impl Iterator<Item = (LocalVoxelPosition, &Voxel)> {
         self.iter()

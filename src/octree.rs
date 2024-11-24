@@ -1,3 +1,4 @@
+use bevy::math::IVec3;
 use either::Either;
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,11 @@ where
             }
             OctantKind::Node(_) => Either::Right(std::iter::empty()),
         })
+    }
+
+    /// Iterate over each octant in the tree, in no specific order
+    pub fn iter_octants(&self) -> impl Iterator<Item = &Octant<T>> {
+        self.octants.iter()
     }
 
     pub fn get(&self, pos: OctantPos) -> &T {
@@ -146,16 +152,22 @@ impl From<OctantPos> for (usize, usize, usize) {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Octant<T> {
-    kind: OctantKind<T>,
-    position: OctantPos,
-    /// The side length of the cube
-    size: usize,
+impl From<OctantPos> for IVec3 {
+    fn from(value: OctantPos) -> Self {
+        IVec3::new(value.0 as _, value.1 as _, value.2 as _)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
-enum OctantKind<T> {
+pub struct Octant<T> {
+    pub kind: OctantKind<T>,
+    pub position: OctantPos,
+    /// The side length of the cube
+    pub size: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum OctantKind<T> {
     /// A contiguous chunk of elements (may be a single element)
     Chunk(T),
     /// A split chunk of 8 different kinds

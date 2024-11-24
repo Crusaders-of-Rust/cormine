@@ -27,6 +27,7 @@ use crate::{
         ChunkPosition,
         ChunkVoxels,
     },
+    octree::OctantKind,
     voxel::{
         Voxel,
         VoxelKind,
@@ -117,6 +118,7 @@ pub fn from_chunk(
         vertex_data: &mut Vec<u32>,
         material: VoxelKind,
         pos: IVec3,
+        size: usize,
     ) {
         let adjacent = get_adjacent_voxels(voxels, pos);
         fn face_neighbour_offsets(direction: IVec3) -> [IVec3; 8] {
@@ -185,7 +187,8 @@ pub fn from_chunk(
                 continue;
             }
 
-            let verts = face_vertices.map(|f| (pos + VERTICES[f]).as_vec3().to_array());
+            let verts =
+                face_vertices.map(|f| (pos + VERTICES[f] * size as i32).as_vec3().to_array());
             let ao_vals = if material.receives_shadow() {
                 ao_values_for_face(voxels, pos, face_direction)
             } else {
@@ -212,9 +215,26 @@ pub fn from_chunk(
         }
     }
 
-    for ((x, y, z), v) in chunk_voxels.iter().filter(|(_, v)| v.should_mesh()) {
-        let pos = ivec3(x as _, y as _, z as _);
-        add_cube(&voxels, &mut vertices, &mut vertex_data, v.kind(), pos);
+    for (pos, size, voxel) in chunk_voxels.iter_octants().filter_map(|octant| {
+        if let OctantKind::Chunk(inner) = octant.kind {
+            if octant.size > 1 {
+                trace!("meshing superchunk: {}", octant.size);
+            }
+            inner
+                .should_mesh()
+                .then_some((octant.position, octant.size, inner))
+        } else {
+            None
+        }
+    }) {
+        add_cube(
+            &voxels,
+            &mut vertices,
+            &mut vertex_data,
+            voxel.kind(),
+            pos.into(),
+            size,
+        );
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Float32x3(vertices));

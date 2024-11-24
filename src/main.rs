@@ -316,6 +316,6 @@ fn handle_mesh_tasks(
         }
     }
     if completed > 0 {
-        debug!("Completed {completed} meshes this frame");
+        trace!("Completed {completed} meshes this frame");
     }
 }
