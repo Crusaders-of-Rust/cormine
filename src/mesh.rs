@@ -26,6 +26,7 @@ use crate::{
     chunk::{
         ChunkPosition,
         ChunkVoxels,
+        CHUNK_SIZE,
     },
     octree::OctantKind,
     voxel::{
@@ -102,7 +103,13 @@ pub fn from_chunk(
         .collect();
 
     for (adj_chunk_pos, adj_chunk) in adj_chunks {
-        for (adj_pos, adj_voxel) in adj_chunk.iter() {
+        const MAX_CHUNK_COORD: usize = CHUNK_SIZE - 1;
+        // Add edge voxels from each adjacent chunk for considering AO and culling
+        for (adj_pos, adj_voxel) in adj_chunk.iter().filter(|&((x, y, z), _)| {
+            matches!(x, 0 | MAX_CHUNK_COORD)
+                || matches!(y, 0 | MAX_CHUNK_COORD)
+                || matches!(z, 0 | MAX_CHUNK_COORD)
+        }) {
             let new_pos = [
                 (adj_chunk_pos.x() + adj_pos.0 as i32) - chunk_pos.x(),
                 adj_pos.1 as i32,
