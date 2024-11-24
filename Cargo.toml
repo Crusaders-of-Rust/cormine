@@ -17,6 +17,7 @@ bit_field = "0.10.2"
 cormine_shared = { version = "0.1.0", path = "cormine_shared" }
 renderdoc = { version = "0.12", optional = true }
 either = "1.13.0"
+ndarray = "0.16.1"
 
 [dependencies.bevy]
 version = "0.14"

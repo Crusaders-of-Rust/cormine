@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    ops::Add,
-};
+use std::ops::Add;
 
 use bevy::{
     math::ivec3,
@@ -21,12 +18,14 @@ use bevy::{
     utils::tracing,
 };
 use bit_field::BitField;
+use ndarray::Array3;
 
 use crate::{
     chunk::{
         ChunkPosition,
         ChunkVoxels,
         CHUNK_SIZE,
+        MAX_HEIGHT,
     },
     octree::OctantKind,
     voxel::{
@@ -77,50 +76,71 @@ pub fn from_chunk(
         ([3, 2, 6, 7], IVec3::Y),     // top
     ];
 
-    fn get_adjacent_voxel(map: &HashMap<[i32; 3], Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
-        let pos = pos.add(dir);
-        let item = map.get(&pos.to_array());
-        *item.unwrap_or(&Voxel::AIR)
+    fn get_adjacent_voxel(map: &Array3<Voxel>, pos: IVec3, dir: IVec3) -> Voxel {
+        // Offset the coord to account for the neighbouring chunks
+        let pos = pos.add(dir).add(ivec3(1, 0, 1));
+        if pos.y < 0 || pos.y >= MAX_HEIGHT as i32 {
+            return Voxel::AIR;
+        }
+        map[pos.to_array().map(|c| {
+            c.try_into()
+                .unwrap_or_else(|_| panic!("{pos:?} + {dir:?} + (1, 0, 1) underflow"))
+        })]
     }
 
     /// Get the 6 directly adjacent voxels, returning [`Voxel::AIR`] if on a
     /// chunk boundary
-    fn get_adjacent_voxels(map: &HashMap<[i32; 3], Voxel>, pos: IVec3) -> [Voxel; 6] {
+    fn get_adjacent_voxels(map: &Array3<Voxel>, pos: IVec3) -> [Voxel; 6] {
         FACES.map(|(_, direction)| get_adjacent_voxel(map, pos, direction))
     }
 
     let mut vertices = Vec::new();
     let mut vertex_data = Vec::new();
 
-    // FIXME: As we're using an octree, we could instead add each octant to save
-    // mesh data for contiguous cubes.
-    let mut voxels: HashMap<[i32; 3], Voxel> = chunk_voxels
-        .iter_local_pos()
-        .map(|(lvp, v)| {
-            let pos = [lvp.x() as i32, lvp.y() as i32, lvp.z() as i32];
-            (pos, *v)
-        })
-        .collect();
+    let mut voxels = Array3::from_elem((CHUNK_SIZE + 2, MAX_HEIGHT, CHUNK_SIZE + 2), Voxel::AIR);
+    for (lvp, pos) in chunk_voxels.iter_local_pos() {
+        // Offset the coord to account for the neighbouring chunks
+        voxels[(
+            (lvp.x() + 1) as usize,
+            lvp.y() as usize,
+            (lvp.z() + 1) as usize,
+        )] = *pos;
+    }
 
     for (adj_chunk_pos, adj_chunk) in adj_chunks {
-        const MAX_CHUNK_COORD: usize = CHUNK_SIZE - 1;
         // Add edge voxels from each adjacent chunk for considering AO and culling
-        for (adj_pos, adj_voxel) in adj_chunk.iter().filter(|&((x, y, z), _)| {
-            matches!(x, 0 | MAX_CHUNK_COORD)
-                || matches!(y, 0 | MAX_CHUNK_COORD)
-                || matches!(z, 0 | MAX_CHUNK_COORD)
-        }) {
+        let filter = if adj_chunk_pos.x() < chunk_pos.x() {
+            |(x, _, _)| x == CHUNK_SIZE - 1
+        } else if adj_chunk_pos.x() > chunk_pos.x() {
+            |(x, _, _)| x == 0
+        } else if adj_chunk_pos.z() < chunk_pos.z() {
+            |(_, _, z)| z == CHUNK_SIZE - 1
+        } else if adj_chunk_pos.z() > chunk_pos.z() {
+            |(_, _, z)| z == 0
+        } else {
+            unreachable!("adj_chunk({adj_chunk_pos:?}) should be in one of the cardinal directions from chunk({chunk_pos:?})");
+        };
+        for (adj_pos, adj_voxel) in adj_chunk.iter().filter(|&(pos, _)| filter(pos)) {
+            // Offset the coord to account for the neighbouring chunks
             let new_pos = [
-                (adj_chunk_pos.x() + adj_pos.0 as i32) - chunk_pos.x(),
-                adj_pos.1 as i32,
-                (adj_chunk_pos.z() + adj_pos.2 as i32) - chunk_pos.z(),
+                ((adj_chunk_pos.x() + adj_pos.0 as i32) - chunk_pos.x() + 1)
+                    .try_into()
+                    .unwrap_or_else(|_| {
+                        panic!("{adj_chunk_pos:?} + {adj_pos:?} - {chunk_pos:?} underflow")
+                    }),
+                adj_pos.1,
+                ((adj_chunk_pos.z() + adj_pos.2 as i32) - chunk_pos.z() + 1)
+                    .try_into()
+                    .unwrap_or_else(|_| {
+                        panic!("{adj_chunk_pos:?} + {adj_pos:?} - {chunk_pos:?} underflow")
+                    }),
             ];
-            voxels.insert(new_pos, *adj_voxel);
+            voxels[new_pos] = *adj_voxel;
         }
     }
 
     fn add_cube(
-        voxels: &HashMap<[i32; 3], Voxel>,
+        voxels: &Array3<Voxel>,
         vertices: &mut Vec<[f32; 3]>,
         vertex_data: &mut Vec<u32>,
         material: VoxelKind,
@@ -158,11 +178,7 @@ pub fn from_chunk(
         // https://playspacefarer.com/ambient-occlusion/
         // FIXME: Some of the values in this are wrong, leading to the AO looking a bit
         // wonky
-        fn ao_values_for_face(
-            map: &HashMap<[i32; 3], Voxel>,
-            pos: IVec3,
-            face_direction: IVec3,
-        ) -> [u32; 4] {
+        fn ao_values_for_face(map: &Array3<Voxel>, pos: IVec3, face_direction: IVec3) -> [u32; 4] {
             // Offsets to neighbouring voxels of a face - starting at the 'middle left'
             // and continuing anti-clockwise
 
