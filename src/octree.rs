@@ -141,7 +141,6 @@ where
             let OctantKind::Node(subindexes) = self.octants[idx].kind else {
                 continue;
             };
-            let subindexes = subindexes;
             let (first, rest) = subindexes.split_first().unwrap();
             let OctantKind::Chunk(first) = &self.octants[*first].kind else {
                 continue;

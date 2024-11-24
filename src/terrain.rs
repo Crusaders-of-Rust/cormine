@@ -109,7 +109,7 @@ pub fn queue_generate_chunk_terrain(
     settings: Res<crate::Settings>,
     player: Query<&Transform, With<Camera>>,
 ) {
-    if ev_movement.len() > 0 && !ev_movement.read().any(|mvmnt| mvmnt.changed_chunk()) {
+    if !ev_movement.is_empty() && !ev_movement.read().any(|mvmnt| mvmnt.changed_chunk()) {
         return;
     }
     let pos: ChunkPosition = player.single().translation.as_ivec3().into();

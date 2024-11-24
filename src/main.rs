@@ -241,7 +241,8 @@ enum ChunkMeshingTask {
     },
     Sync {
         pos: ChunkPosition,
-        voxels: ChunkVoxels,
+        // boxed to keep variants similar size
+        voxels: Box<ChunkVoxels>,
         adjacent: Vec<(ChunkPosition, ChunkVoxels)>,
     },
 }
@@ -280,7 +281,7 @@ fn queue_chunk_meshes(
         if sync || chunk_pos.in_range_of_spawn(2) {
             commands.entity(ent).insert(ChunkMeshingTask::Sync {
                 pos: chunk_pos,
-                voxels: chunk,
+                voxels: Box::new(chunk),
                 adjacent: adj_chunks,
             });
         } else {
@@ -328,7 +329,7 @@ fn handle_mesh_tasks(
         tasks
             .iter()
             .map(|(ent, pos, voxels, adjacent)| {
-                let mesh = mesh::from_chunk((*pos, *voxels), *adjacent);
+                let mesh = mesh::from_chunk((*pos, *voxels), adjacent);
                 (mesh, *ent, *pos)
             })
             .collect::<Vec<_>>()

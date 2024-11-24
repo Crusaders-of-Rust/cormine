@@ -1,5 +1,3 @@
-use std::f32::EPSILON;
-
 use bevy::prelude::*;
 
 use crate::{
@@ -37,7 +35,7 @@ fn draw_line(start: Vec3, direction: Vec3, distance: f32) -> impl Iterator<Item 
     let mut t_max = ((voxel - start + mask) / direction).abs();
 
     std::iter::from_fn(move || {
-        if Vec3::abs_diff_eq(voxel, end_voxel, EPSILON) {
+        if Vec3::abs_diff_eq(voxel, end_voxel, f32::EPSILON) {
             return None;
         };
         if t_max.x < t_max.y {
@@ -48,14 +46,12 @@ fn draw_line(start: Vec3, direction: Vec3, distance: f32) -> impl Iterator<Item 
                 voxel.z += step.z;
                 t_max.z += t_delta.z;
             }
+        } else if t_max.y < t_max.z {
+            voxel.y += step.y;
+            t_max.y += t_delta.y;
         } else {
-            if t_max.y < t_max.z {
-                voxel.y += step.y;
-                t_max.y += t_delta.y;
-            } else {
-                voxel.z += step.z;
-                t_max.z += t_delta.z;
-            }
+            voxel.z += step.z;
+            t_max.z += t_delta.z;
         }
         Some(voxel.as_ivec3())
     })
